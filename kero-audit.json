@@ -1,0 +1,7 @@
+{
+  "url": "http://localhost:3000",
+  "routes": ["/", "/?linea=10", "/?linea=2-savio&parada=2-savio-903182a2", "/?linea=muni-l026"],
+  "viewports": ["390x844", "1440x900"],
+  "minText": 14,
+  "spacing": [4, 8, 12, 16, 24, 32]
+}
