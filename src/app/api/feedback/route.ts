@@ -82,7 +82,7 @@ export async function POST(req: Request) {
     });
     if (!response.ok) return Response.json({ error: "delivery_failed" }, { status: 502, headers: corsHeaders(origin) });
   } else {
-    console.warn("Feedback received without a configured destination", { topic, message, lineId, stopId, page });
+    console.warn("Feedback received without a configured destination", { topic, lineId, stopId, page });
     return Response.json({ error: "feedback_not_configured" }, { status: 503, headers: corsHeaders(origin) });
   }
 
@@ -102,8 +102,20 @@ async function verifyTurnstile(token: string | undefined, secret: string, remote
       cache: "no-store",
     });
     if (!response.ok) return false;
-    const result = (await response.json()) as { success?: boolean };
-    return result.success === true;
+    const result = (await response.json()) as { success?: boolean; action?: string; hostname?: string };
+    const configuredHostnames = (process.env.TURNSTILE_HOSTNAMES || "")
+      .split(",")
+      .map((value) => value.trim().toLowerCase())
+      .filter(Boolean);
+    const allowedHostnames = configuredHostnames.length > 0
+      ? configuredHostnames
+      : process.env.NODE_ENV !== "production"
+        ? ["localhost", "127.0.0.1"]
+        : [];
+    return result.success === true
+      && result.action === "feedback"
+      && !!result.hostname
+      && allowedHostnames.includes(result.hostname.toLowerCase());
   } catch (error) {
     console.error("Turnstile verification failed", error);
     return false;

@@ -1,11 +1,12 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { BffClient } from "@/lib/bff-client";
 import { CloseIcon } from "./icons";
 
 type TurnstileApi = {
-  render: (container: HTMLElement, options: { sitekey: string; callback: (token: string) => void; "expired-callback": () => void; "error-callback": () => void }) => string;
-  reset: (widgetId: string) => void;
+  render: (container: HTMLElement, options: { sitekey: string; action: string; callback: (token: string) => void; "expired-callback": () => void; "error-callback": () => void }) => string;
+  reset?: (widgetId: string) => void;
   remove?: (widgetId: string) => void;
 };
 
@@ -34,44 +35,80 @@ export default function Feedback({ lineId, stopId }: FeedbackProps) {
   const [sent, setSent] = useState(false);
   const [error, setError] = useState("");
   const [turnstileToken, setTurnstileToken] = useState("");
+  const [turnstileLoadError, setTurnstileLoadError] = useState(false);
+  const [turnstileRetry, setTurnstileRetry] = useState(0);
   const turnstileContainer = useRef<HTMLDivElement>(null);
   const turnstileWidget = useRef<string | null>(null);
   const turnstileSiteKey = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY?.trim();
 
   useEffect(() => {
-    if (!open || !turnstileSiteKey || !turnstileContainer.current) return;
+    if (!open || !turnstileSiteKey) return;
     let cancelled = false;
+    let frame: number | undefined;
+    const src = "https://challenges.cloudflare.com/turnstile/v0/api.js";
+
     const render = () => {
       if (cancelled || !window.turnstile || !turnstileContainer.current || turnstileWidget.current) return;
-      turnstileWidget.current = window.turnstile.render(turnstileContainer.current, {
-        sitekey: turnstileSiteKey,
-        callback: setTurnstileToken,
-        "expired-callback": () => setTurnstileToken(""),
-        "error-callback": () => {
-          setTurnstileToken("");
-          setError("No se pudo verificar el formulario. Probá de nuevo.");
-        },
-      });
+      try {
+        turnstileWidget.current = window.turnstile.render(turnstileContainer.current, {
+          sitekey: turnstileSiteKey,
+          action: "feedback",
+          callback: setTurnstileToken,
+          "expired-callback": () => setTurnstileToken(""),
+          "error-callback": () => {
+            setTurnstileToken("");
+            setTurnstileLoadError(true);
+            setError("No se pudo validar el captcha. Revisá la clave y el dominio configurado en Cloudflare.");
+          },
+        });
+        if (loadTimeout) clearTimeout(loadTimeout);
+      } catch {
+        setTurnstileLoadError(true);
+        setError("No se pudo cargar la verificación de seguridad. Recargá la página e intentá nuevamente.");
+      }
     };
-    const existing = document.querySelector<HTMLScriptElement>('script[src="https://challenges.cloudflare.com/turnstile/v0/api.js"]');
-    if (window.turnstile) render();
-    else if (existing) existing.addEventListener("load", render);
-    else {
-      const script = document.createElement("script");
-      script.src = "https://challenges.cloudflare.com/turnstile/v0/api.js";
-      script.async = true;
-      script.defer = true;
-      script.addEventListener("load", render);
-      document.head.appendChild(script);
-    }
+
+    const initialize = () => {
+      if (cancelled) return;
+      if (!turnstileContainer.current) {
+        frame = window.requestAnimationFrame(initialize);
+        return;
+      }
+      const existing = document.querySelector<HTMLScriptElement>(`script[src="${src}"]`);
+      if (turnstileRetry > 0 && existing && !window.turnstile) existing.remove();
+      if (window.turnstile && typeof window.turnstile.render === "function") render();
+      else if (existing && document.head.contains(existing)) existing.addEventListener("load", render, { once: true });
+      else {
+        const script = document.createElement("script");
+        script.src = src;
+        script.async = true;
+        script.defer = true;
+        script.addEventListener("load", render, { once: true });
+        script.addEventListener("error", () => {
+          setTurnstileLoadError(true);
+          setError("No se pudo cargar el captcha de Cloudflare.");
+        }, { once: true });
+        document.head.appendChild(script);
+      }
+    };
+
+    const loadTimeout = setTimeout(() => {
+      if (!turnstileWidget.current && !cancelled) {
+        setTurnstileLoadError(true);
+        setError("Cloudflare no pudo cargar en este navegador. Revisá bloqueadores de anuncios o privacidad.");
+      }
+    }, 7000);
+    frame = window.requestAnimationFrame(initialize);
+
     return () => {
       cancelled = true;
-      if (existing) existing.removeEventListener("load", render);
+      if (frame) window.cancelAnimationFrame(frame);
+      if (loadTimeout) clearTimeout(loadTimeout);
       if (turnstileWidget.current && window.turnstile?.remove) window.turnstile.remove(turnstileWidget.current);
       turnstileWidget.current = null;
       setTurnstileToken("");
     };
-  }, [open, turnstileSiteKey]);
+  }, [open, turnstileSiteKey, turnstileRetry]);
 
   const close = () => {
     if (sending) return;
@@ -86,31 +123,27 @@ export default function Feedback({ lineId, stopId }: FeedbackProps) {
       return;
     }
     if (turnstileSiteKey && !turnstileToken) {
-      setError("Completá la verificación antes de enviar.");
+      setError("Completá la verificación de seguridad antes de enviar.");
       return;
     }
     setSending(true);
     setError("");
     try {
-      const response = await fetch("/api/feedback", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "same-origin",
-        body: JSON.stringify({ topic, message, lineId, stopId, page: window.location.pathname, website: "", turnstileToken }),
-      });
-      if (!response.ok) throw new Error("feedback_failed");
+      await BffClient.post("/api/feedback", { topic, message, lineId, stopId, page: window.location.pathname, website: "", turnstileToken });
       setSent(true);
       setMessage("");
     } catch {
       setError("No se pudo enviar ahora. Probá de nuevo en unos segundos.");
     } finally {
+      if (turnstileWidget.current && window.turnstile?.reset) window.turnstile.reset(turnstileWidget.current);
+      setTurnstileToken("");
       setSending(false);
     }
   };
 
   return (
     <>
-      <button type="button" className="feedback-trigger" onClick={() => { setOpen(true); setSent(false); }} aria-label="Enviar feedback">
+      <button type="button" className="feedback-trigger" onClick={() => { setOpen(true); setSent(false); setError(""); setTurnstileLoadError(false); setTurnstileToken(""); }} aria-label="Enviar feedback">
         <span aria-hidden="true">✦</span>
         <span>Feedback</span>
       </button>
@@ -149,7 +182,12 @@ export default function Feedback({ lineId, stopId }: FeedbackProps) {
                   <span>Tu mensaje <b>*</b></span>
                   <textarea value={message} onChange={(event) => setMessage(event.target.value)} placeholder="Por ejemplo: la línea 18 no aparece en el mapa…" maxLength={2000} rows={5} autoFocus required />
                 </label>
-                {error && <p className="feedback-error" role="alert">{error}</p>}
+                {error && (
+                  <div role="alert">
+                    <p className="feedback-error">{error}</p>
+                    {turnstileLoadError && <button type="button" className="feedback-retry" onClick={() => { setError(""); setTurnstileLoadError(false); setTurnstileToken(""); setTurnstileRetry((value) => value + 1); }}>Reintentar verificación</button>}
+                  </div>
+                )}
                 <button type="submit" className="button primary feedback-submit" disabled={sending}>
                   {sending ? "Enviando…" : "Enviar feedback"}
                 </button>

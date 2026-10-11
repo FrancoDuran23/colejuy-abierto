@@ -56,6 +56,8 @@ sequenceDiagram
 
 - **BFF:** el cliente solo conoce `/api/feedback`; `TELEGRAM_BOT_TOKEN`, `FEEDBACK_CHAT_ID` y `FEEDBACK_WEBHOOK_URL` nunca se exponen al navegador.
 - **Turnstile:** CAPTCHA gratuito de Cloudflare. Se activa configurando `NEXT_PUBLIC_TURNSTILE_SITE_KEY` y `TURNSTILE_SECRET_KEY`. El backend valida siempre el token contra `siteverify`; no alcanza con mostrar el widget en el cliente.
+- **Widget robusto:** usa `action: "feedback"`, reintento si el script no carga y resetea el token después de cada envío. El servidor verifica `success`, `action` y `hostname`.
+- **Cliente BFF:** `src/lib/bff-client.ts` centraliza las llamadas same-origin y traduce errores sin exponer secretos ni destinos externos al navegador.
 - **Rate limit por IP:** máximo de **5 feedbacks por IP por hora**.
 - **Rate limit global:** máximo de **40 feedbacks por hora** para evitar saturar Telegram aunque el ataque distribuya las IPs.
 - **Redis/Upstash:** los contadores son compartidos entre instancias serverless. Sin Redis, el desarrollo usa un fallback en memoria que no debe considerarse protección suficiente para producción.
@@ -76,6 +78,7 @@ KV_REST_API_TOKEN=
 # Turnstile gratuito
 NEXT_PUBLIC_TURNSTILE_SITE_KEY=
 TURNSTILE_SECRET_KEY=
+TURNSTILE_HOSTNAMES=localhost,127.0.0.1
 ```
 
 La site key puede estar en el navegador. El secret nunca debe estar en variables `NEXT_PUBLIC_*` ni en el repositorio.

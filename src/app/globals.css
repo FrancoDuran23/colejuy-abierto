@@ -528,6 +528,15 @@ h3 {
   margin-top: var(--s3);
 }
 
+.feedback-retry {
+  margin-top: var(--s2);
+  color: var(--ink);
+  font-size: 14px;
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
 .feedback-submit {
   width: 100%;
   margin-top: var(--s4);
