@@ -40,6 +40,8 @@ Una persona dirige y decide; agentes de IA investigan, construyen y miden. Nada 
 
 **6. Los errores también se anotan.** Dos fallas llegaron a producción y se corrigieron el mismo día: un enlace del bot que respondía "ese paso ya venció" y una regla de estilos partida por la mitad. Las dos están descritas en la skill del proyecto, con la causa y con la comprobación que las habría evitado: mirar la pantalla y simular el mensaje real, no quedarse con que las pruebas pasan.
 
+La caja de feedback está documentada en [docs/feedback-security.md](docs/feedback-security.md). Usa un BFF same-origin, Cloudflare Turnstile gratuito, rate limit de 5 envíos por IP por hora y un límite global de 40 por hora antes de entregar el mensaje al bot.
+
 **7. Sin modelo de IA en producción.** El sitio y el bot no llaman a ningún modelo. El bot entiende "avisame cuando pase el 41" con reglas escritas a mano: no cuesta por mensaje y responde siempre igual.
 
 ## Cómo se usa
