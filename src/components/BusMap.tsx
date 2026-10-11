@@ -40,6 +40,7 @@ export type MapMark = {
 };
 
 type Props = {
+  theme: "light" | "dark";
   marks?: MapMark[];
   buses: MapBus[];
   paths: MapPath[];
@@ -67,7 +68,10 @@ type Props = {
 // MapLibre ships its worker as a separate file; the bundler does not carry it, so it is served from public/.
 setWorkerUrl("/maplibre-gl-worker.mjs");
 
-const STYLE = "https://tiles.openfreemap.org/styles/positron";
+const STYLE = {
+  light: "https://tiles.openfreemap.org/styles/positron",
+  dark: "https://tiles.openfreemap.org/styles/dark",
+} as const;
 const CENTER: [number, number] = [-65.28, -24.215];
 const ME = "#2b63d9";
 // About 15 frames a second: enough for the buses to look like they roll, light on a phone.
@@ -134,16 +138,19 @@ export default function BusMap(props: Props) {
   const markers = useRef(new globalThis.Map<string, Marker>());
   // The last framing, so it can be redone when the map changes size, until the person moves the map themselves.
   const framed = useRef<{ bounds: LngLatBounds; moved: boolean } | null>(null);
+  const view = useRef<{ center: [number, number]; zoom: number } | null>(null);
 
   const motions = useRef(new globalThis.Map<number, MotionState>());
 
   useEffect(() => {
     if (!container.current) return;
+    setReady(false);
+    const savedView = view.current;
     const m = new MapLibreMap({
       container: container.current,
-      style: STYLE,
-      center: CENTER,
-      zoom: 11.7,
+      style: STYLE[props.theme],
+      center: savedView?.center ?? CENTER,
+      zoom: savedView?.zoom ?? 11.7,
       attributionControl: { compact: true },
       dragRotate: false,
       pitchWithRotate: false,
@@ -271,13 +278,16 @@ export default function BusMap(props: Props) {
         source: "me",
         paint: { "circle-radius": 7, "circle-color": ME, "circle-stroke-color": "#ffffff", "circle-stroke-width": 3 },
       });
-      // On a phone the open credits wrap to two lines and crowd the location button;
-      // they start folded behind their own button, where MapLibre keeps them reachable.
-      if (window.innerWidth < 900) {
+      // The credits start folded behind their own ⓘ button on all screens,
+      // keeping the map uncluttered while remaining accessible.
+      const closeCredits = () => {
         const credits = m.getContainer().querySelector(".maplibregl-ctrl-attrib");
+        credits?.classList.add("maplibregl-compact");
         credits?.classList.remove("maplibregl-compact-show");
         credits?.removeAttribute("open");
-      }
+      };
+      closeCredits();
+      m.on("resize", closeCredits);
       setReady(true);
     });
 
@@ -305,11 +315,13 @@ export default function BusMap(props: Props) {
     });
     resize.observe(container.current);
     return () => {
+      const center = m.getCenter();
+      view.current = { center: [center.lng, center.lat], zoom: m.getZoom() };
       resize.disconnect();
       m.remove();
       map.current = null;
     };
-  }, []);
+  }, [props.theme]);
 
   const { buses, paths, activeDirection, color, stops, selectedStop, me, pins, fitKey, frame, focus, routes, legend } = props;
 

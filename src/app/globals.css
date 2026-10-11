@@ -1,6 +1,7 @@
 @import "tailwindcss";
 
 :root {
+  color-scheme: light;
   --ground: #f3f0e8;
   --surface: #ffffff;
   --ink: #1c1b18;
@@ -8,6 +9,10 @@
   --rule: #dedacd;
   --warn: #8a3b00;
   --focus: #1c1b18;
+  --on-ink: #ffffff;
+  --ink-hover: #3a3832;
+  --map-ground: #e9e6dd;
+  --map-attrib: rgb(255 255 255 / 0.85);
 
   /* One spacing scale: 4, 8, 12, 16, 24, 32. */
   --s1: 4px;
@@ -23,6 +28,21 @@
   --r-plate: 8px;
 
   --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+.dark {
+  color-scheme: dark;
+  --ground: #171714;
+  --surface: #22211d;
+  --ink: #f3f0e8;
+  --ink-soft: #aaa69c;
+  --rule: #3b3932;
+  --warn: #ffb16c;
+  --focus: #f3f0e8;
+  --on-ink: #1c1b18;
+  --ink-hover: #d8d4c9;
+  --map-ground: #15181a;
+  --map-attrib: rgb(34 33 29 / 0.9);
 }
 
 html,
@@ -87,7 +107,7 @@ h3 {
 .stage .map {
   position: absolute;
   inset: 0;
-  background: #e9e6dd;
+  background: var(--map-ground);
 }
 
 .panel {
@@ -267,7 +287,7 @@ h3 {
   position: absolute;
   inset: 0;
   justify-content: center;
-  background: #e9e6dd;
+  background: var(--map-ground);
   font-size: 16px;
 }
 
@@ -299,10 +319,21 @@ h3 {
   bottom: var(--r-panel);
 }
 
-/* The map credits are third-party markup; they still follow the project's minimum text size. */
+/* The map credits are third-party markup; they stay compact with just the ⓘ tooltip button by default. */
 .stage .maplibregl-ctrl-attrib {
   font-family: inherit;
-  font-size: 14px;
+  font-size: 13px;
+  background-color: transparent;
+}
+
+.stage .maplibregl-ctrl-attrib.maplibregl-compact:not([open]) .maplibregl-ctrl-attrib-inner {
+  display: none !important;
+}
+
+.stage .maplibregl-ctrl-attrib.maplibregl-compact[open] {
+  background-color: var(--map-attrib);
+  border-radius: var(--r-control);
+  padding: 2px 6px;
 }
 
 .locate {
@@ -337,7 +368,7 @@ h3 {
 
 .button.primary {
   background: var(--ink);
-  color: #ffffff;
+  color: var(--on-ink);
 }
 
 @media (hover: hover) {
@@ -360,7 +391,7 @@ h3 {
     background: var(--ground);
   }
   .button.primary:hover {
-    background: #3a3832;
+    background: var(--ink-hover);
   }
 }
 
@@ -374,7 +405,7 @@ h3 {
   padding: var(--s3) var(--s4);
   border-radius: var(--r-control);
   background: var(--ink);
-  color: #ffffff;
+  color: var(--on-ink);
   font-size: 15px;
   opacity: 0;
   visibility: hidden;
@@ -386,13 +417,92 @@ h3 {
   visibility: visible;
 }
 
-/* Feedback */
+/* Top Actions (Install PWA + Feedback) */
 
-.feedback-trigger {
+.top-actions {
   position: fixed;
   right: var(--s4);
   top: calc(var(--s4) + env(safe-area-inset-top));
-  z-index: 4;
+  z-index: 10;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s2);
+}
+
+.theme-toggle {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  flex: none;
+  border: 1px solid var(--rule);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--ink);
+  box-shadow: 0 4px 16px rgb(0 0 0 / 0.18);
+  transition: background-color 120ms var(--ease-out), transform 120ms var(--ease-out);
+}
+
+.theme-toggle svg {
+  width: 19px;
+  height: 19px;
+}
+
+.theme-toggle:active {
+  transform: scale(0.97);
+}
+
+@media (hover: hover) {
+  .theme-toggle:hover {
+    background: var(--ground);
+  }
+}
+
+.install-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s2);
+  min-height: 44px;
+  padding: 0 var(--s3);
+  border: 1px solid var(--rule);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--ink);
+  box-shadow: 0 4px 16px rgb(28 27 24 / 0.16);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 120ms var(--ease-out), transform 120ms var(--ease-out);
+}
+
+.install-trigger svg {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+}
+
+@media (hover: hover) {
+  .install-trigger:hover {
+    background: var(--ground);
+  }
+}
+
+.install-trigger:active {
+  transform: scale(0.97);
+}
+
+@media (max-width: 600px) {
+  .install-trigger {
+    padding: 0 13px;
+  }
+  .install-trigger-text {
+    display: none;
+  }
+}
+
+/* Feedback */
+
+.feedback-trigger {
   display: inline-flex;
   align-items: center;
   gap: var(--s2);
@@ -401,10 +511,12 @@ h3 {
   border: 1px solid rgb(255 255 255 / 0.35);
   border-radius: 999px;
   background: var(--ink);
-  color: #fff;
+  color: var(--on-ink);
   box-shadow: 0 4px 16px rgb(28 27 24 / 0.22);
   font-size: 14px;
   font-weight: 600;
+  cursor: pointer;
+  transition: background-color 120ms var(--ease-out), transform 120ms var(--ease-out);
 }
 
 .feedback-trigger span:first-child {
@@ -484,7 +596,7 @@ h3 {
 .feedback-topics button.selected {
   border-color: var(--ink);
   background: var(--ink);
-  color: #fff;
+  color: var(--on-ink);
 }
 
 .feedback-field {
@@ -563,7 +675,7 @@ h3 {
   height: 48px;
   border-radius: 50%;
   background: var(--ink);
-  color: #fff;
+  color: var(--on-ink);
   font-size: 24px;
 }
 
@@ -577,15 +689,11 @@ h3 {
 
 @media (hover: hover) {
   .feedback-trigger:hover {
-    background: #3a3832;
+    background: var(--ink-hover);
   }
 }
 
 @media (max-width: 899px) {
-  .feedback-trigger {
-    right: var(--s3);
-    top: calc(var(--s3) + env(safe-area-inset-top));
-  }
   .feedback-card {
     align-self: end;
     max-height: calc(100dvh - 24px);
@@ -730,11 +838,18 @@ h3 {
   color: var(--ink);
 }
 
-/* The isologo: the mark and the name, set in the product's own type. */
+/* The isologo: the llama-bus app mark and the name, set in the product's own type. */
 .brand {
   display: flex;
   align-items: center;
   gap: var(--s2);
+}
+
+.product-mark {
+  display: block;
+  flex: 0 0 auto;
+  border-radius: 22%;
+  object-fit: cover;
 }
 
 .brand-name {
@@ -772,7 +887,7 @@ h3 {
 
 .button[aria-pressed="true"] {
   background: var(--ink);
-  color: #ffffff;
+  color: var(--on-ink);
 }
 
 .button:disabled {
@@ -827,11 +942,23 @@ h3 {
 .install {
   display: flex;
   align-items: center;
+  justify-content: space-between;
   gap: var(--s2);
   margin: 0 var(--s4) var(--s3);
   padding: var(--s1) var(--s2) var(--s1) var(--s3);
   background: var(--ground);
   border-radius: var(--r-control);
+}
+
+.install-action {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s2);
+  color: var(--ink);
+}
+
+.install-action svg {
+  flex-shrink: 0;
 }
 
 .install p {
@@ -853,6 +980,143 @@ h3 {
 .install-hide {
   color: var(--ink-soft);
   font-weight: 500;
+}
+
+/* Floating automatic install invitation banner */
+.install-banner {
+  position: fixed;
+  top: calc(var(--s4) + env(safe-area-inset-top) + 52px);
+  left: var(--s4);
+  right: var(--s4);
+  max-width: 420px;
+  margin: 0 auto;
+  z-index: 30;
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  border-radius: var(--r-panel);
+  box-shadow: 0 16px 48px rgb(28 27 24 / 0.22);
+  padding: var(--s3) var(--s4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--s3);
+  animation: install-banner-in 300ms var(--ease-out);
+}
+
+@keyframes install-banner-in {
+  from {
+    opacity: 0;
+    transform: translateY(-16px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.install-banner-header {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--s3);
+}
+
+.install-banner-icon {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: var(--ink);
+  color: #ffffff;
+  flex-shrink: 0;
+}
+
+.install-banner-icon svg {
+  width: 22px;
+  height: 22px;
+}
+
+.install-banner-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.install-banner-title {
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--ink);
+  line-height: 1.25;
+  margin: 0;
+}
+
+.install-banner-desc {
+  font-size: 14px;
+  color: var(--ink-soft);
+  line-height: 1.35;
+  margin: 2px 0 0;
+}
+
+.install-banner-close {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 9999px;
+  background: transparent;
+  color: var(--ink-soft);
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  margin: -4px -4px 0 0;
+  flex-shrink: 0;
+  transition: background-color 120ms var(--ease-out), color 120ms var(--ease-out);
+}
+
+@media (hover: hover) {
+  .install-banner-close:hover {
+    background: var(--ground);
+    color: var(--ink);
+  }
+}
+
+.install-banner-close svg {
+  width: 18px;
+  height: 18px;
+}
+
+.install-banner-actions {
+  display: grid;
+  grid-template-columns: 1fr 1.3fr;
+  gap: var(--s2);
+}
+
+.install-banner-dismiss {
+  min-height: 42px;
+  padding: 0 var(--s3);
+  font-size: 15px;
+}
+
+.install-banner-cta {
+  min-height: 42px;
+  padding: 0 var(--s3);
+  gap: var(--s2);
+  font-size: 15px;
+}
+
+.install-banner-cta svg {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+}
+
+@media (min-width: 900px) {
+  .install-banner {
+    left: auto;
+    right: var(--s4);
+    top: calc(var(--s4) + 52px);
+    bottom: auto;
+    width: 380px;
+    margin: 0;
+  }
 }
 
 /* Instruction sheet for phones that cannot open the browser's own install prompt. */
@@ -947,6 +1211,25 @@ h3 {
   display: inline-block;
   margin-left: var(--s2);
   vertical-align: -5px;
+}
+
+.install-ios-badge {
+  display: flex;
+  align-items: center;
+  gap: var(--s2);
+  margin-top: var(--s4);
+  padding: var(--s3);
+  border: 1px solid var(--rule);
+  border-radius: var(--r-control);
+  background: var(--ground);
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.install-ios-badge svg {
+  flex-shrink: 0;
+  margin: 0;
 }
 
 .route-legend {
@@ -1387,7 +1670,7 @@ h3 {
   padding: 0 var(--s5);
   border-radius: var(--r-control);
   background: var(--ink);
-  color: #ffffff;
+  color: var(--on-ink);
   font-size: 16px;
   font-weight: 600;
   text-decoration: none;
@@ -1428,7 +1711,7 @@ h3 {
     background: var(--surface);
   }
   .doc .doc-action:hover {
-    background: #3a3832;
+    background: var(--ink-hover);
   }
 }
 

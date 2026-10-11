@@ -1,7 +1,8 @@
 {
-  "name": "coelctivo",
+  "name": "colejuy",
   "version": "0.1.0",
   "private": true,
+  "packageManager": "pnpm@12.9.1",
   "scripts": {
     "dev": "next dev --turbopack",
     "build": "next build",
@@ -9,8 +10,8 @@
     "lint": "eslint",
     "sync:muni": "node scripts/sync-muni.mjs",
     "worker": "node -e \"require('fs').copyFileSync('node_modules/maplibre-gl/dist/maplibre-gl-worker.mjs','public/maplibre-gl-worker.mjs')\"",
-    "predev": "npm run worker",
-    "prebuild": "npm run worker",
+    "predev": "node -e \"require('fs').copyFileSync('node_modules/maplibre-gl/dist/maplibre-gl-worker.mjs','public/maplibre-gl-worker.mjs')\"",
+    "prebuild": "node -e \"require('fs').copyFileSync('node_modules/maplibre-gl/dist/maplibre-gl-worker.mjs','public/maplibre-gl-worker.mjs')\"",
     "test": "vitest run"
   },
   "dependencies": {
@@ -25,6 +26,7 @@
   "devDependencies": {
     "@eslint/eslintrc": "^3",
     "@tailwindcss/postcss": "^4",
+    "@types/geojson": "^7946.0.16",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
@@ -36,6 +38,7 @@
     "vitest": "^4.1.11"
   },
   "engines": {
-    "node": ">=20"
+    "node": ">=22",
+    "pnpm": ">=12"
   }
 }
