@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { CHANGE_WAIT_MIN, nearestStopMeters, plan, planWidening, walkMinutes, type NetLine, type NetStop } from "./plan";
+import { stopsFromPaths } from "./approx-stops";
+import { CHANGE_WAIT_MIN, whyNoTrip, nearestStopMeters, plan, planWidening, walkMinutes, type NetLine, type NetStop } from "./plan";
 
 // About 400 m between consecutive stops along a parallel, in the city's latitude.
 const STEP = 0.004;
@@ -153,5 +154,29 @@ describe("walkMinutes", () => {
     const minutes = walkMinutes([-65.3, LAT], [-65.3, LAT + 0.009]);
     expect(minutes).toBeGreaterThan(13);
     expect(minutes).toBeLessThan(17);
+  });
+});
+
+describe("without stop data or live tracking", () => {
+  const path = [{ direction: "ida", coordinates: Array.from({ length: 11 }, (_, i) => [-65.3 + 0.004 * i, LAT] as [number, number]) }];
+  const approx: NetLine = { id: "R", stops: stopsFromPaths("R", path), live: false, approx: true };
+
+  it("derives ordered stops from a route", () => {
+    expect(approx.stops.length).toBeGreaterThan(8);
+    expect(approx.stops.map((s) => s.order)).toEqual(approx.stops.map((_, i) => i + 1));
+  });
+  it("plans a trip over route-derived stops", () => {
+    const { options } = planWidening([approx], [-65.3 + 0.004, LAT + 0.0005], [-65.3 + 0.03, LAT]);
+    expect(options[0].legs[0].line).toBe("R");
+  });
+  it("never prints Infinity, with an empty network", () => {
+    const msg = whyNoTrip([{ id: "X", stops: [] }], [-65.3, LAT], [-65.2, LAT], false);
+    expect(msg).not.toMatch(/Infinity/);
+    expect(whyNoTrip([], [-65.3, LAT], [-65.2, LAT], true)).toMatch(/No hay datos/);
+  });
+  it("says the real distance when far", () => {
+    const msg = whyNoTrip([approx], [-64, LAT], [-63, LAT], false);
+    expect(msg).toMatch(/km/);
+    expect(msg).not.toMatch(/Infinity|con seguimiento/);
   });
 });

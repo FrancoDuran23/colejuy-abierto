@@ -19,12 +19,14 @@ export const metadata: Metadata = {
   metadataBase: new URL(SITE),
   // Each page gives its own title; the name of the site goes after it.
   title: { default: "colejuy: colectivos de San Salvador de Jujuy en el mapa", template: "%s | colejuy" },
-  description: "Mapa de los colectivos de San Salvador de Jujuy: líneas, recorridos, paradas y qué colectivo tomar para llegar. Gratis, sin cuenta y sin instalar nada.",
+  description: "Colectivos de San Salvador de Jujuy en el mapa: líneas de Santa Ana y El Urbano, recorridos, paradas, posiciones en vivo y cómo llegar. Gratis, sin cuenta y sin instalar nada.",
+  keywords: ["colectivos Jujuy", "colectivos San Salvador de Jujuy", "colectivos en vivo Jujuy", "horarios colectivos Jujuy", "Santa Ana colectivos", "paradas de colectivo Jujuy", "cómo llegar en colectivo Jujuy", "líneas de colectivo Jujuy"],
   applicationName: "colejuy",
   alternates: { canonical: "/" },
-  openGraph: { type: "website", siteName: "colejuy", locale: "es_AR", url: "/" },
-  twitter: { card: "summary_large_image", creator: "@fdurandev" },
-  authors: [{ name: "Franco Duran", url: "https://jujuy.dev.ar" }],
+  openGraph: { type: "website", siteName: "colejuy", locale: "es_AR", url: "/", title: "colejuy: colectivos de San Salvador de Jujuy en el mapa", description: "Líneas, recorridos, paradas, colectivos en vivo y cómo llegar en San Salvador de Jujuy. Gratis y sin cuenta." },
+  twitter: { card: "summary_large_image", creator: "@fdurandev", title: "colejuy: colectivos de San Salvador de Jujuy en el mapa", description: "Líneas, recorridos, paradas, colectivos en vivo y cómo llegar en San Salvador de Jujuy." },
+  manifest: "/manifest.webmanifest",
+  authors: [{ name: "Franco Durán", url: "https://jujuy.dev.ar" }],
   appleWebApp: { capable: true, title: "Colectivos Jujuy", statusBarStyle: "default" },
   icons: {
     icon: [
@@ -50,6 +52,21 @@ export default function RootLayout({
   return (
     <html lang="es-AR">
       <body className={barlow.variable}>
+        {/* beforeinstallprompt can fire before the Next bundle runs. A plain script
+            executes while the HTML is parsed; next/script would wait for that bundle. */}
+        <script
+          id="install-early"
+          dangerouslySetInnerHTML={{
+            __html: `(function () {
+              window.__bip = window.__bip || null;
+              window.addEventListener("beforeinstallprompt", function (event) {
+                event.preventDefault();
+                window.__bip = event;
+              });
+              if ("serviceWorker" in navigator) navigator.serviceWorker.register("/sw.js").catch(function () {});
+            })();`,
+          }}
+        />
         {children}
         {/* Counts visits without cookies; the numbers are in the Vercel project, under Analytics. */}
         <Analytics />

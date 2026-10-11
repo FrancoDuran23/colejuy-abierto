@@ -11,7 +11,7 @@ export async function GET() {
 
 > Mapa gratuito de los colectivos urbanos de ${CITY}, Jujuy, Argentina: líneas, recorridos, paradas y cómo llegar de un punto a otro. Sin cuenta y sin instalar nada.
 
-colejuy es un proyecto independiente de Franco Duran, fundador de la comunidad jujuy.dev. No es la app oficial de ninguna empresa de transporte.
+colejuy es un proyecto independiente de Franco Durán, fundador de la comunidad jujuy.dev. No es la app oficial de ninguna empresa de transporte.
 
 ## Qué responde
 
@@ -29,6 +29,20 @@ colejuy es un proyecto independiente de Franco Duran, fundador de la comunidad j
 ## Líneas
 
 ${lines.map((l) => `- [${properName(l.name)}](${SITE}/linea/${encodeURIComponent(l.id)}): ${l.live ? "recorrido y paradas" : "solo recorrido"}${l.operator ? `, ${l.operator}` : ""}.`).join("\n")}
+
+## Preguntas frecuentes
+
+- ¿Cómo sé cuándo llega el colectivo en Jujuy? Se toca una parada en colejuy y se ve cuánto falta; hay posición en vivo solo para líneas de Santa Ana y el tiempo es una estimación.
+- ¿Qué líneas hay? ${lines.length} cargadas (${live.length} con paradas y posiciones de Santa Ana; el resto, solo recorrido de la Municipalidad).
+- ¿Es gratis? Sí, sin cuenta, sin publicidad y sin instalar nada.
+- ¿Cómo llego de un punto a otro? Con "Cómo llegar": indica línea, parada de subida y de bajada, con un cambio si hace falta.
+- ¿De dónde salen los datos? Santa Ana SRL, Municipalidad de ${CITY} y OpenStreetMap.
+
+## Autor y cita
+
+- Autor: Franco Durán, fundador de jujuy.dev (https://jujuy.dev.ar).
+- Para citar: "colejuy (colejuy.vercel.app)", ${SITE}/
+- Versión extendida de este archivo: ${SITE}/llms-full.txt
 
 ## Datos
 

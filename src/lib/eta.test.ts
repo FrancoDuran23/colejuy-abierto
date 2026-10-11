@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { arrivals } from "./eta";
+import { alongRoute, arrivals, etaText, nearestStopAhead, resolveEta } from "./eta";
 import type { Bus, Path, Stop } from "./santa-ana";
 
 // Metres in one degree of latitude on the sphere geo.ts uses (R = 6371 km).
@@ -187,5 +187,147 @@ describe("arrivals", () => {
     expect(arrivals(PATHS, STOP, [])).toEqual([]);
     expect(arrivals([], STOP, [bus({})])).toEqual([]);
     expect(arrivals([{ direction: "ida", coordinates: [[LNG, -24.2]] }], STOP, [bus({})])).toEqual([]);
+  });
+});
+
+const M_PER_DEG_LNG = 6371000 * (Math.PI / 180) * Math.cos((-24.2 * Math.PI) / 180);
+
+describe("alongRoute", () => {
+  it("measures the polyline, not the straight line, and turns that into minutes", () => {
+    // East, then north. The corner is longer than the chord between the ends.
+    const bent: Path = {
+      direction: "ida",
+      coordinates: [
+        [LNG, -24.2],
+        [LNG + 0.01, -24.2],
+        [LNG + 0.01, -24.19],
+      ],
+    };
+    const stop: Stop = { id: "bend", name: "Esquina", lat: -24.19, lng: LNG + 0.01, direction: "ida", order: 2 };
+    const b = bus({ lat: -24.2, lng: LNG, course: 90 });
+    const along = 0.01 * M_PER_DEG_LNG + 0.01 * DEG_LAT_M;
+    const route = alongRoute([bent], stop, b);
+    expect(route?.kind).toBe("coming");
+    if (route?.kind !== "coming") return;
+    expect(route.meters).toBeCloseTo(along, 0);
+    expect(route.meters).toBeGreaterThan(Math.hypot(0.01 * M_PER_DEG_LNG, 0.01 * DEG_LAT_M) + 50);
+    expect(route.minutes).toBeCloseTo(route.meters / M_PER_MIN, 5);
+  });
+
+  it("says the bus passed once it is beyond the stop in its direction of travel", () => {
+    const passed = bus({ lat: -24.185, course: 0 });
+    const route = alongRoute(PATHS, STOP, passed);
+    expect(route?.kind).toBe("passed");
+    if (route?.kind !== "passed") return;
+    expect(route.meters).toBeCloseTo(0.005 * DEG_LAT_M, 0);
+  });
+
+  it("keeps a bus a few metres past the stop as arriving, same as the alert list", () => {
+    const justPast = bus({ lat: -24.1899 });
+    const route = alongRoute(PATHS, STOP, justPast);
+    expect(route).toEqual({ kind: "coming", meters: 0, minutes: 0 });
+    expect(arrivals(PATHS, STOP, [justPast])).toHaveLength(1);
+  });
+
+  it("does not measure a bus going the other way or off the route", () => {
+    expect(alongRoute(PATHS, STOP, bus({ lat: -24.195, course: 180 }))).toBeNull();
+    expect(alongRoute(PATHS, STOP, bus({ lat: -24.195, lng: LNG + 0.002 }))).toBeNull();
+  });
+});
+
+describe("nearestStopAhead", () => {
+  const near: Stop = { id: "near", name: "Cerca", lat: -24.192, lng: LNG, direction: "ida", order: 1 };
+  const far: Stop = { id: "far", name: "Lejos", lat: -24.185, lng: LNG, direction: "ida", order: 2 };
+  const behind: Stop = { id: "behind", name: "Atrás", lat: -24.198, lng: LNG, direction: "ida", order: 0 };
+  const otherWay: Stop = { id: "back", name: "Vuelta", lat: -24.192, lng: LNG_BACK, direction: "vuelta", order: 1 };
+
+  it("picks the stop ahead of the bus that is closest to the person", () => {
+    const b = bus({ lat: -24.195, course: 0 });
+    const atFar: [number, number] = [LNG, -24.185];
+    expect(nearestStopAhead(PATHS, [behind, near, far, otherWay], b, atFar)?.stop).toBe(far);
+    const atNear: [number, number] = [LNG, -24.192];
+    expect(nearestStopAhead(PATHS, [behind, near, far, otherWay], b, atNear)?.stop).toBe(near);
+  });
+
+  it("skips a closer stop the bus has already passed and uses the next one ahead", () => {
+    const b = bus({ lat: -24.193, course: 0 });
+    const standingAtPassed: [number, number] = [LNG, -24.198];
+    const found = nearestStopAhead(PATHS, [behind, near, far], b, standingAtPassed);
+    expect(found?.stop).toBe(near);
+    expect(found?.route.kind).toBe("coming");
+  });
+
+  it("reports ya pasó when the bus is past every stop of its direction", () => {
+    const b = bus({ lat: -24.184, course: 0 });
+    const found = nearestStopAhead(PATHS, [behind, near], b, [LNG, -24.198]);
+    expect(found?.stop).toBe(behind);
+    expect(found?.route.kind).toBe("passed");
+  });
+
+  it("ignores the other direction and a bus that is not on the route", () => {
+    const south = bus({ lat: -24.185, lng: LNG_BACK, course: 180 });
+    expect(nearestStopAhead(PATHS, [near, far], south, [LNG, -24.19])).toBeNull();
+    expect(nearestStopAhead(PATHS, [near], bus({ lat: -24.195, lng: LNG + 0.002 }), [LNG, -24.192])).toBeNull();
+  });
+});
+
+describe("resolveEta", () => {
+  const chosen: Stop = { ...STOP, name: "Elegida" };
+
+  it("uses the stop the person chose, including when the bus already passed it", () => {
+    const coming = resolveEta(PATHS, [STOP], bus({ lat: -24.195 }), chosen, null);
+    expect(coming.kind).toBe("ready");
+    if (coming.kind !== "ready") return;
+    expect(coming.source).toBe("chosen");
+    expect(coming.route.kind).toBe("coming");
+
+    const passed = resolveEta(PATHS, [STOP], bus({ lat: -24.185 }), chosen, [LNG, -24.195]);
+    expect(passed.kind).toBe("ready");
+    if (passed.kind !== "ready") return;
+    expect(passed.route.kind).toBe("passed");
+    expect(passed.stop).toBe(chosen);
+  });
+
+  it("asks for a stop when there is no choice and no position", () => {
+    expect(resolveEta(PATHS, [STOP], bus({}), null, null)).toEqual({ kind: "pick" });
+  });
+
+  it("falls back to the nearest stop ahead of the bus from the person's position", () => {
+    const found = resolveEta(PATHS, [STOP], bus({ lat: -24.195 }), null, [LNG, -24.19]);
+    expect(found.kind).toBe("ready");
+    if (found.kind !== "ready") return;
+    expect(found.source).toBe("location");
+    expect(found.stop.id).toBe(STOP.id);
+  });
+});
+
+describe("etaText", () => {
+  it("says the range once, and the distance", () => {
+    const minutes = 1417 / M_PER_MIN;
+    expect(etaText({ kind: "coming", meters: 1417, minutes })).toEqual({
+      kind: "coming",
+      title: "3 a 7 min",
+      distance: "1,4 km",
+    });
+  });
+
+  it("uses a single estimate when both ends are the same minute", () => {
+    expect(etaText({ kind: "coming", meters: 160, minutes: 160 / M_PER_MIN })).toEqual({
+      kind: "coming",
+      title: "≈ 1 min",
+      distance: "160 m",
+    });
+  });
+
+  it("says it is arriving when the bus is already at the stop", () => {
+    expect(etaText({ kind: "coming", meters: 90, minutes: 0.3 }).title).toBe("Está llegando");
+  });
+
+  it("says the bus already passed, with how far", () => {
+    expect(etaText({ kind: "passed", meters: 400 })).toEqual({
+      kind: "passed",
+      title: "Ya pasó",
+      distance: "hace 400 m",
+    });
   });
 });

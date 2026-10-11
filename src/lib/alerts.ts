@@ -40,13 +40,20 @@ export function parseStop(payload: string): { line: string; stop: string } | nul
 const SLOW_KMH = 12;
 const FAST_KMH = 31;
 // Closer than this the bus is at the stop, whatever its speed.
-const ARRIVING_M = 150;
+export const ARRIVING_M = 150;
 
 // The minutes a bus that far away may take, as whole minutes: [soonest, latest].
 export function arrivalRange(meters: number): [number, number] {
   const soonest = Math.max(1, Math.round(meters / ((FAST_KMH * 1000) / 60)));
   const latest = Math.max(soonest, Math.round(meters / ((SLOW_KMH * 1000) / 60)));
   return [soonest, latest];
+}
+
+// The figure to say out loud, kept inside the measured range. `minutes` is the 17 km/h estimate.
+export function estimateMinutes(meters: number, minutes: number): { best: number; soonest: number; latest: number } {
+  const [soonest, latest] = arrivalRange(meters);
+  const best = Math.min(latest, Math.max(soonest, Math.round(minutes)));
+  return { best, soonest, latest };
 }
 
 export type Decision = "notify" | "expire" | "wait";
@@ -68,8 +75,7 @@ export const texts = {
   notify: (a: Alert, meters: number, minutes: number, bus: string | null) => {
     const coche = bus ? ` (coche ${bus})` : "";
     if (meters <= ARRIVING_M) return `Está llegando ${a.lineName} a ${a.stopName}${coche}.`;
-    const [soonest, latest] = arrivalRange(meters);
-    const best = Math.min(latest, Math.max(soonest, Math.round(minutes)));
+    const { best, soonest, latest } = estimateMinutes(meters, minutes);
     const spread = soonest === latest ? "" : `; puede ser entre ${soonest} y ${latest}`;
     return `${a.lineName} está a ${formatDistance(meters)} de ${a.stopName}${coche}. Llega en ${best === 1 ? "1 min" : `unos ${best} min`}${spread}.`;
   },

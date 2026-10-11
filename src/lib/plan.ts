@@ -1,7 +1,8 @@
-import { distance, type LngLat } from "./geo";
+import { distance, formatDistance, type LngLat } from "./geo";
 
 export type NetStop = { id: string; name: string; lat: number; lng: number; direction: string | null; order: number | null };
-export type NetLine = { id: string; stops: NetStop[] };
+// `approx`: the stops were derived from the route, not given by the source. `live`: the line has bus tracking.
+export type NetLine = { id: string; stops: NetStop[]; live?: boolean; approx?: boolean };
 
 // One ride on one line.
 export type Leg = { line: string; board: NetStop; alight: NetStop; ride: number };
@@ -192,4 +193,17 @@ export function nearestStopMeters(lines: NetLine[], p: LngLat): number {
   let best = Infinity;
   for (const line of lines) for (const s of line.stops) if (s.order !== null) best = Math.min(best, distance(p, point(s)));
   return best;
+}
+
+// Why no trip was found, in words. Never shows a missing distance as a number.
+export function whyNoTrip(lines: NetLine[], start: LngLat, destination: LngLat, fromMe: boolean): string {
+  if (lines.every((l) => l.stops.length === 0)) return "No hay datos de paradas por ahora. Prueba de nuevo en unos minutos.";
+  const limit = WALK_STEPS_M[WALK_STEPS_M.length - 1];
+  const fromStop = nearestStopMeters(lines, start);
+  const toStop = nearestStopMeters(lines, destination);
+  const far = (m: number) => (Number.isFinite(m) ? `la parada más cercana está a ${formatDistance(m)}` : "no hay datos de paradas");
+  if (fromStop > limit && toStop > limit) return `Ninguno de los dos puntos tiene paradas cerca: desde la salida ${far(fromStop)}, y desde el destino ${Number.isFinite(toStop) ? `a ${formatDistance(toStop)}` : "no hay datos"}.`;
+  if (fromStop > limit) return `${fromMe ? "Tu ubicación" : "La salida"} queda lejos de los recorridos: ${far(fromStop)}. Marca otra salida en el mapa.`;
+  if (toStop > limit) return `El destino queda lejos de los recorridos: ${far(toStop)}. Marca otro destino en el mapa.`;
+  return "Hay paradas cerca de los dos puntos, pero ningún viaje de una o dos líneas los une. Prueba con un punto cercano.";
 }

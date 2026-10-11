@@ -1,7 +1,7 @@
 // How a selected line is drawn and named. The direction comes from the stops
 // (or, for the municipal routes, from the file), never from the order of the paths.
 
-import { locate, type LngLat } from "./geo";
+import { locate, pathLength, slice, type LngLat } from "./geo";
 
 export type NamedStop = { name: string; direction: string | null; order: number | null };
 
@@ -9,7 +9,7 @@ const tidy = (name: string) => name.trim().replace(/\s+/g, " ");
 
 // The return is dashed. Anything else, including a path whose direction is still unknown, is solid.
 export function routeStroke(direction: string): "solid" | "dashed" {
-  return direction === "vuelta" ? "dashed" : "solid";
+  return direction === "vuelta" || direction.startsWith("walk") ? "dashed" : "solid";
 }
 
 export function hasBothDirections(paths: { direction: string }[]): boolean {
@@ -72,3 +72,26 @@ export function orderStops<T extends PlacedStop>(stops: T[], paths: DirectedPath
 }
 
 const rank = (direction: string | null) => (direction === "ida" ? 0 : direction === "vuelta" ? 1 : 2);
+
+// The stretch a trip rides on one line: the real route between the boarding and the alighting stop.
+// Of all the paths of the line, the one both stops lie on (alighting after boarding) is used;
+// a path that matches the stop's direction wins a tie. With no such path the two stops are
+// joined by a straight line, which is only a last resort.
+export function ridePath(paths: DirectedPath[], board: LngLat, alight: LngLat, direction: string | null = null, expected: number | null = null): LngLat[] {
+  let best: { score: number; path: DirectedPath } | null = null;
+  for (const path of paths) {
+    const a = locate(path.coordinates, board);
+    const b = locate(path.coordinates, alight);
+    if (!a || !b || b.along <= a.along) continue;
+    const score = a.offset + b.offset - (direction && path.direction === direction ? 25 : 0);
+    if (!best || score < best.score) best = { score, path };
+  }
+  if (!best) return [board, alight];
+  // The stops can sit a block away from the drawn route: the ends are joined to it, so the stretch never floats apart from its stops.
+  const ride = slice(best.path.coordinates, board, alight);
+  // A looping route can place two neighbouring stops at opposite ends of its drawing. When the stretch is far longer
+  // than the trip's own estimate, it is the wrong way round the loop: the two stops are joined directly instead.
+  if (expected !== null && pathLength(ride, board[1]) > expected * 2.5 + 600) return [board, alight];
+  const same = (a: LngLat, b: LngLat) => a[0] === b[0] && a[1] === b[1];
+  return [...(same(ride[0], board) ? [] : [board]), ...ride, ...(same(ride[ride.length - 1], alight) ? [] : [alight])];
+}

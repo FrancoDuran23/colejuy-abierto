@@ -11,6 +11,7 @@ export const metadata: Metadata = {
   title: "Líneas de colectivos de San Salvador de Jujuy",
   description: "Todas las líneas de colectivos urbanos de San Salvador de Jujuy, con el recorrido y las paradas de cada una. Santa Ana, El Urbano y la línea 26.",
   alternates: { canonical: "/lineas" },
+  openGraph: { title: "Líneas de colectivos de San Salvador de Jujuy", description: "Recorrido y paradas de cada línea de colectivos urbanos de San Salvador de Jujuy.", url: "/lineas", images: ["/opengraph-image"] },
 };
 
 export default async function Lines() {

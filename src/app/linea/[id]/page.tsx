@@ -45,7 +45,7 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
     title: `${title}: ${line.live ? "recorrido y paradas" : "recorrido"} en ${CITY}`,
     description,
     alternates: { canonical: `/linea/${encodeURIComponent(line.id)}` },
-    openGraph: { title: `${title}: ${line.live ? "recorrido y paradas" : "recorrido"}`, description, url: `/linea/${encodeURIComponent(line.id)}` },
+    openGraph: { title: `${title}: ${line.live ? "recorrido y paradas" : "recorrido"}`, description, url: `/linea/${encodeURIComponent(line.id)}`, images: ["/opengraph-image"] },
   };
 }
 

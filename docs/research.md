@@ -62,7 +62,7 @@ Página Leaflet de la Municipalidad de San Salvador de Jujuy, modificada el 24 s
 ## Cierre de la flota (8 de octubre de 2026)
 
 - `GET /api/fleet` dejó de ser pública: sin credenciales responde 401 `{"error":"Autenticacion requerida"}` con `WWW-Authenticate: Bearer`. `/api/line-routes` y `/api/line-stops` siguen abiertas.
-- Santa Ana indicó usar el token del usuario. Su app lo obtiene así: inicia sesión en su Appwrite (`https://appwrite.santaanasrl.com.ar/v1`, proyecto `6aa4501a00048053dc71`), pide un JWT (`POST /account/jwts`, dura 900 s) y lo manda como `Authorization: Bearer`.
+- Santa Ana indicó usar el token del usuario. Su app lo obtiene así: inicia sesión en su servicio de cuentas, pide un JWT (`POST /account/jwts`, dura 900 s) y lo manda como `Authorization: Bearer`.
 - Límites vistos: 10 inicios de sesión por hora y 120 JWT por hora en Appwrite. La sesión dura un año.
 - **Con el token, la flota respondió 429 `Too Many Requests` en 7 de 7 intentos**, espaciados hasta 30 s, siempre con `Retry-After: 10`. El token es aceptado; lo que frena es un límite de frecuencia cuyo valor no se conoce. Hay que preguntárselo a Santa Ana.
 - La app oficial consulta la flota cada 10 s (`setTimeout` de `1e4` menos lo que tardó), una cuenta por persona y solo con la página visible. El sitio pide cada 20 s con una sola cuenta y recibe 429 igual, desde dos direcciones distintas.

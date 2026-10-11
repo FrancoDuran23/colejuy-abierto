@@ -7,7 +7,18 @@ const muniLines = muni as LineRoute[];
 
 // Every line of the city: Santa Ana's (tracked live) plus the municipal routes of the rest.
 export async function allRoutes(): Promise<LineRoute[]> {
-  return [...(await fetchRoutes()), ...muniLines];
+  try {
+    return [...(await fetchRoutes()), ...muniLines];
+  } catch (err) {
+    // Build machines often get nginx 403 from Santa Ana (datacenter IP block). Without a
+    // fallback the whole production build dies and env updates never ship.
+    // Runtime / ISR still throw so Next can keep the last good daily copy.
+    if (process.env.NEXT_PHASE === "phase-production-build") {
+      console.warn("Santa Ana unreachable during build; municipal lines only", err);
+      return [...muniLines];
+    }
+    throw err;
+  }
 }
 
 export async function allLines(): Promise<Line[]> {

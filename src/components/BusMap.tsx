@@ -1,6 +1,6 @@
 "use client";
 
-import { LngLatBounds, Map as MapLibreMap, setWorkerUrl, type GeoJSONSource, type PointLike } from "maplibre-gl";
+import { LngLatBounds, Map as MapLibreMap, Marker, setWorkerUrl, type GeoJSONSource, type PointLike } from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
 import { useEffect, useRef, useState } from "react";
 import { arrowOpacity, createMotion, heldWithoutSignal, pushFix, sameReading, stepMotion, STOP_KMH, type MotionState, type RouteLine } from "@/lib/motion";
@@ -25,7 +25,22 @@ export type MapBus = {
 export type MapPath = { direction: string; coordinates: [number, number][]; color?: string };
 export type MapStop = { id: string; lng: number; lat: number; color?: string };
 
+// A labeled mark drawn over the map: where a trip starts, where to get on and off, where it ends.
+export type MapMark = {
+  id: string;
+  lng: number;
+  lat: number;
+  kind: "letter" | "label";
+  // "letter": a round badge (A, B). "label": a pill with a text.
+  text: string;
+  // Small extra under the pill, e.g. the stop name is not drawn; kept short on purpose.
+  color: string;
+  textColor: string;
+  bus?: boolean;
+};
+
 type Props = {
+  marks?: MapMark[];
   buses: MapBus[];
   paths: MapPath[];
   activeDirection: string | null;
@@ -44,7 +59,7 @@ type Props = {
   routes: RouteLine[];
   // Ida and vuelta are both on the map, so the legend is shown.
   legend: boolean;
-  onBus: (line: string) => void;
+  onBus: (id: number) => void;
   onStop: (id: string) => void;
   onMap: (point: [number, number]) => void;
 };
@@ -78,8 +93,36 @@ function arrowImage(): ImageData {
   return g.getImageData(0, 0, size, size);
 }
 
+const BUS_SVG =
+  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="3.5" width="16" height="14" rx="3"/><path d="M4 11h16M7 20.5v-3M17 20.5v-3"/></svg>';
+
+function markElement(m: MapMark): HTMLElement {
+  const el = document.createElement("div");
+  el.className = "mk";
+  el.style.setProperty("--mk", m.color);
+  el.style.setProperty("--mk-text", m.textColor);
+  if (m.kind === "letter") {
+    const b = document.createElement("div");
+    b.className = "mk-letter";
+    b.textContent = m.text;
+    el.append(b);
+  } else {
+    const l = document.createElement("div");
+    l.className = "mk-label";
+    if (m.bus) l.insertAdjacentHTML("afterbegin", BUS_SVG);
+    l.append(document.createTextNode(m.text));
+    const d = document.createElement("div");
+    d.className = "mk-dot";
+    el.append(l, d);
+  }
+  return el;
+}
+
 const collection = (features: GeoJSON.Feature[]): GeoJSON.FeatureCollection => ({ type: "FeatureCollection", features });
 const reducedMotion = () => window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+// The panel covers the bottom of the screen on a phone: the route is framed above it, not under it.
+const fitOptions = () => ({ padding: { top: 72, left: 48, right: 48, bottom: 72 }, maxZoom: 15 });
 
 export default function BusMap(props: Props) {
   const container = useRef<HTMLDivElement>(null);
@@ -87,6 +130,10 @@ export default function BusMap(props: Props) {
   const [ready, setReady] = useState(false);
   const handlers = useRef(props);
   handlers.current = props;
+
+  const markers = useRef(new globalThis.Map<string, Marker>());
+  // The last framing, so it can be redone when the map changes size, until the person moves the map themselves.
+  const framed = useRef<{ bounds: LngLatBounds; moved: boolean } | null>(null);
 
   const motions = useRef(new globalThis.Map<number, MotionState>());
 
@@ -241,12 +288,21 @@ export default function BusMap(props: Props) {
       ];
       const stop = m.queryRenderedFeatures(box, { layers: ["stops"] })[0];
       if (stop) return handlers.current.onStop(String(stop.properties.id));
-      const bus = m.queryRenderedFeatures(box, { layers: ["buses", "bus-arrow"] })[0];
-      if (bus?.properties.line) return handlers.current.onBus(String(bus.properties.line));
+      const bus = m.queryRenderedFeatures(box, { layers: ["buses", "bus-arrow", "bus-labels"] })[0];
+      if (bus?.properties.id != null) return handlers.current.onBus(Number(bus.properties.id));
       handlers.current.onMap([e.lngLat.lng, e.lngLat.lat]);
     });
 
-    const resize = new ResizeObserver(() => m.resize());
+    const touched = (e: { originalEvent?: unknown }) => {
+      if (e.originalEvent && framed.current) framed.current.moved = true;
+    };
+    m.on("dragstart", touched);
+    m.on("zoomstart", touched);
+    const resize = new ResizeObserver(() => {
+      m.resize();
+      const f = framed.current;
+      if (f && !f.moved) m.fitBounds(f.bounds, { ...fitOptions(), duration: 0 });
+    });
     resize.observe(container.current);
     return () => {
       resize.disconnect();
@@ -304,6 +360,7 @@ export default function BusMap(props: Props) {
                 type: "Feature" as const,
                 geometry: { type: "Point" as const, coordinates: stepped.shown.at },
                 properties: {
+                  id: b.id,
                   line: b.line,
                   label: b.label,
                   color: b.color,
@@ -372,10 +429,29 @@ export default function BusMap(props: Props) {
     const bounds = new LngLatBounds();
     for (const p of paths) for (const c of p.coordinates) bounds.extend(c);
     for (const c of frame) bounds.extend(c);
-    m.fitBounds(bounds, { padding: 56, maxZoom: 15, duration: reducedMotion() ? 0 : 600 });
+    for (const k of props.marks ?? []) bounds.extend([k.lng, k.lat]);
+    framed.current = { bounds, moved: false };
+    m.fitBounds(bounds, { ...fitOptions(), duration: reducedMotion() ? 0 : 600 });
     // Framing follows the line, not every refresh of its geometry.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ready, fitKey]);
+
+  useEffect(() => {
+    const m = map.current;
+    if (!ready || !m) return;
+    const wanted = new globalThis.Map((props.marks ?? []).map((k) => [k.id, k]));
+    for (const [id, marker] of markers.current) {
+      if (!wanted.has(id)) {
+        marker.remove();
+        markers.current.delete(id);
+      }
+    }
+    for (const k of wanted.values()) {
+      const old = markers.current.get(k.id);
+      old?.remove();
+      markers.current.set(k.id, new Marker({ element: markElement(k), anchor: k.kind === "letter" ? "center" : "bottom" }).setLngLat([k.lng, k.lat]).addTo(m));
+    }
+  }, [ready, props.marks]);
 
   useEffect(() => {
     const m = map.current;

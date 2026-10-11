@@ -42,6 +42,10 @@ Una persona dirige y decide; agentes de IA investigan, construyen y miden. Nada 
 
 **7. Sin modelo de IA en producción.** El sitio y el bot no llaman a ningún modelo. El bot entiende "avisame cuando pase el 41" con reglas escritas a mano: no cuesta por mensaje y responde siempre igual.
 
+## Fuente en vivo (falta completar)
+
+Este repositorio no incluye la conexión con los servidores de Santa Ana. Sin ella el mapa muestra recorridos y paradas, sin coches. Cómo enchufarla y el formato de `/api/fleet`: [CONTRIBUTING.md](CONTRIBUTING.md).
+
 ## Cómo se usa
 
 [Video de 94 segundos en el celular](docs/colejuy-demo.mp4): buscar una línea, ver cuánto falta en una parada, guardar líneas, plegar el panel, ver tu ubicación y armar un viaje con cambio de colectivo.
@@ -72,7 +76,7 @@ npm run build
 Sin ninguna variable el sitio muestra las líneas, los recorridos y las paradas. Las de `.env.example` hacen falta para las posiciones en vivo, para los avisos por Telegram y, si se quiere ver el detalle de las visitas, para Google Analytics. Ese archivo trae solo los nombres y para qué sirve cada una; los valores los pone cada quien en su despliegue y nunca van al repositorio.
 
 1. Importar el repositorio en Vercel (o `npx vercel` desde esta carpeta). La región es São Paulo (`vercel.json`).
-2. Para las posiciones en vivo: desde el 8 de octubre de 2026 la flota de Santa Ana pide un usuario con sesión iniciada. Hay que crear una cuenta propia en su app y cargar el secreto de esa sesión en `SANTA_ANA_SESSION`, como explica `.env.example`. Sin esa variable el mapa funciona, pero sin coches.
+2. Para las posiciones en vivo hay que completar la fuente de datos: este repositorio no incluye la conexión con Santa Ana. Ver [CONTRIBUTING.md](CONTRIBUTING.md) (`FLEET_MOCK=1` muestra coches ficticios).
 3. Para los avisos por Telegram:
    - Crear el bot con [@BotFather](https://t.me/BotFather) y copiar el token y el nombre de usuario.
    - Agregar una base Upstash Redis desde Vercel (Storage → Upstash). Deja cargadas `KV_REST_API_URL` y `KV_REST_API_TOKEN`.

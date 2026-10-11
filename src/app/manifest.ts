@@ -6,6 +6,7 @@ export default function manifest(): MetadataRoute.Manifest {
     short_name: "colejuy",
     description: "Dónde está cada colectivo de San Salvador de Jujuy ahora.",
     lang: "es",
+    id: "/",
     start_url: "/",
     display: "standalone",
     background_color: "#f3f0e8",

@@ -1,10 +1,10 @@
 "use client";
 
-import { useMemo, useRef, useState } from "react";
+import { Fragment, useMemo, useRef, useState } from "react";
 import useSWR from "swr";
 import type { Place } from "@/app/api/geocode/route";
 import { formatDistance } from "@/lib/geo";
-import { CHANGE_WAIT_MIN, nearestStopMeters, planWidening, walkMinutes, WALK_STEPS_M, type NetLine, type Option } from "@/lib/plan";
+import { CHANGE_WAIT_MIN, planWidening, whyNoTrip, walkMinutes, WALK_STEPS_M, type NetLine, type Option } from "@/lib/plan";
 import type { Line } from "@/lib/santa-ana";
 import { CloseIcon } from "./icons";
 import Loading from "./Loading";
@@ -53,19 +53,14 @@ export default function Planner({ lineMap, me, origin, destination, target, loca
     [start, destination, network.data],
   );
   const options = found?.options ?? [];
+  const live = useMemo(() => new Set((network.data?.lines ?? []).filter((l) => l.live !== false).map((l) => l.id)), [network.data]);
+  const approx = options.some((o) => o.legs.some((l) => network.data?.lines.find((n) => n.id === l.line)?.approx));
   const longWalk = options.length > 0 && found !== null && found.walk > WALK_STEPS_M[0];
 
   // With no trip at all, say which end is the problem and how far its nearest stop is.
   const why = useMemo(() => {
     if (!start || !destination || !network.data || options.length > 0) return null;
-    const limit = WALK_STEPS_M[WALK_STEPS_M.length - 1];
-    const fromStop = nearestStopMeters(network.data.lines, start);
-    const toStop = nearestStopMeters(network.data.lines, destination);
-    const far = (m: number) => `la parada con seguimiento más cercana está a ${formatDistance(m)}`;
-    if (fromStop > limit && toStop > limit) return `Ninguno de los dos puntos tiene paradas cerca: desde la salida ${far(fromStop)}, y desde el destino, a ${formatDistance(toStop)}.`;
-    if (fromStop > limit) return `${origin === "me" ? "Tu ubicación" : "La salida"} queda lejos de los recorridos: ${far(fromStop)}. Marca otra salida en el mapa.`;
-    if (toStop > limit) return `El destino queda lejos de los recorridos: ${far(toStop)}. Marca otro destino en el mapa.`;
-    return "Hay paradas cerca de los dos puntos, pero ningún viaje de una o dos líneas los une. Prueba con un punto cercano.";
+    return whyNoTrip(network.data.lines, start, destination, origin === "me");
   }, [start, destination, network.data, options.length, origin]);
   const onFoot = start && destination ? walkMinutes(start, destination) : null;
 
@@ -170,38 +165,37 @@ export default function Planner({ lineMap, me, origin, destination, target, loca
                 <p className="status warn">{why}</p>
               ) : (
                 <ol>
-                  {options.map((o) => {
-                    const [first, second] = o.legs;
-                    const last = second ?? first;
+                  {options.slice(0, 3).map((o) => {
+                    const [first] = o.legs;
                     const names = o.legs.map((l) => lineMap.get(l.line)?.name ?? l.line).join(" y después ");
+                    const boardName = first.board.name === "Parada aproximada" ? "Parada cercana" : first.board.name;
+                    const isLive = o.legs.every((l) => live.has(l.line));
                     return (
                       <li key={o.legs.map((l) => l.line).join(">")}>
                         <button
                           type="button"
                           className="option"
                           onClick={() => onChoose(o)}
-                          aria-label={`${names}, ver el viaje en el mapa`}
+                          aria-label={`${names}, ${Math.max(1, Math.round(o.minutes))} minutos, ver el viaje en el mapa`}
                         >
                           <span className="option-plates">
-                            {o.legs.map((l) => {
+                            {o.legs.map((l, i) => {
                               const line = lineMap.get(l.line);
-                              return line ? <Plate key={l.line} line={line} size={second ? undefined : "large"} /> : null;
+                              return line ? (
+                                <Fragment key={l.line}>
+                                  {i > 0 && <span className="option-arrow" aria-hidden="true">→</span>}
+                                  <Plate line={line} />
+                                </Fragment>
+                              ) : null;
                             })}
                           </span>
-                          <span className="option-steps">
-                            <span>
-                              Sube en <b>{first.board.name}</b> · {formatDistance(o.walkTo)} a pie
-                            </span>
-                            {second && (
-                              <span>
-                                Cambia en <b>{first.alight.name}</b> · {formatDistance(o.walkBetween)} a pie
-                              </span>
-                            )}
-                            <span>
-                              Baja en <b>{last.alight.name}</b> · {formatDistance(o.walkFrom)} a pie
-                            </span>
+                          <span className="option-time">
+                            {Math.max(1, Math.round(o.minutes))} min
+                            {isLive && <small className="option-live">en vivo</small>}
                           </span>
-                          <span className="option-time">≈ {Math.max(1, Math.round(o.minutes))} min</span>
+                          <span className="option-sub">
+                            Subí en {boardName} · {formatDistance(o.walkTo)} a pie
+                          </span>
                         </button>
                       </li>
                     );
@@ -212,6 +206,8 @@ export default function Planner({ lineMap, me, origin, destination, target, loca
               {options.length > 0 && (
                 <p className="estimate">
                   Tiempos estimados de caminata y viaje, sin contar la espera del primer colectivo.
+                  {approx && " Algunas paradas son aproximadas (se calculan sobre el recorrido): confirma la parada en el mapa."}
+                  {options.slice(0, 3).some((o) => o.legs.every((l) => live.has(l.line))) && " Las opciones con «en vivo» tienen llegada en tiempo real."}
                   {options.some((o) => o.legs.length > 1) && ` Con cambio se suman ${CHANGE_WAIT_MIN} min supuestos de espera del segundo.`}
                 </p>
               )}
