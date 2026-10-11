@@ -8,21 +8,68 @@ export const INSTALL_COPY = {
   button: "Instalar acceso directo",
   hide: "Ocultar",
   inappTitle: "Abrilo en el navegador",
-  inapp: "Abrilo en Chrome/Safari: tocá ⋮ o … y elegí Abrir en el navegador.",
-  chrome: "Menú ⋮ > Instalar app / Agregar a pantalla principal.",
-  firefox: "Menú ⋮ > Instalar o Agregar a pantalla de inicio.",
-  samsung: "Menú > Agregar página a > Pantalla de inicio.",
-  other: "En el menú del navegador, buscá “Instalar app” o “Agregar a pantalla principal”.",
+  inapp: "Abrilo en Chrome o Safari: tocá ⋮ o … y elegí Abrir en el navegador.",
+  chrome: [
+    "En la barra de direcciones (a la derecha de la URL), hacé clic en el ícono de instalación (⊕ o pantalla).",
+    "O en el menú ⋮ > Guardar y compartir > Instalar ColeJUY…",
+    "Confirmá en “Instalar” para abrir la app en su propia ventana.",
+  ],
+  desktopChrome: [
+    "En la barra de direcciones (a la derecha de la URL), hacé clic en el ícono de instalación (⊕ o pantalla).",
+    "O en el menú ⋮ > Guardar y compartir > Instalar ColeJUY…",
+    "Confirmá en “Instalar” para abrir la app en su propia ventana.",
+  ],
+  desktopEdge: [
+    "En la barra de direcciones (a la derecha de la URL), hacé clic en el ícono de instalación (⊞).",
+    "O en el menú … > Aplicaciones > Instalar este sitio como aplicación.",
+    "Confirmá en “Instalar” para integrarla con tu sistema.",
+  ],
+  macSafari: [
+    "En la barra de menú superior de tu Mac, hacé clic en “Archivo” (o el ícono Compartir).",
+    "Seleccioná “Agregar al Dock…”.",
+    "Hacé clic en “Agregar” para abrir ColeJUY como app en tu Mac.",
+  ],
+  desktopFirefox:
+    "Firefox de escritorio no cuenta con soporte nativo para instalar PWAs. Te recomendamos abrir ColeJUY en Google Chrome, Microsoft Edge o Safari para instalarlo como aplicación independiente.",
+  firefox: [
+    "Tocá el menú de opciones (⋮ o …).",
+    "Elegí “Instalar” o “Agregar a pantalla de inicio”.",
+    "Confirmá en “Agregar”.",
+  ],
+  samsung: [
+    "Tocá el menú de opciones (☰ o ⋮ abajo a la derecha).",
+    "Elegí “Agregar página a” > “Pantalla de inicio”.",
+    "Confirmá en “Agregar”.",
+  ],
+  other: "En el menú del navegador o barra de direcciones, buscá “Instalar app” o “Agregar a pantalla principal”.",
   iosSafari: ["Tocá el ícono Compartir", "Elegí “Agregar a inicio”", "Tocá “Agregar”"],
   iosBrowser: ["Tocá “Compartir”", "Elegí “Agregar a inicio”", "Tocá “Agregar”"],
 } as const;
 
 export const SHARE_URL = "https://colejuy.vercel.app";
-export const SHARE_TITLE = "Colectivos Jujuy";
+export const SHARE_TITLE = "ColeJUY";
 export const SHARE_TEXT = "Mirá los colectivos de Jujuy en vivo.";
 
-export type Platform = "ios-safari" | "ios-browser" | "android" | "other";
-export type GuideKind = "ios-safari" | "ios-browser" | "inapp" | "chrome" | "firefox" | "samsung" | "other";
+export type Platform =
+  | "ios-safari"
+  | "ios-browser"
+  | "android"
+  | "desktop-mac"
+  | "desktop-windows"
+  | "other";
+
+export type GuideKind =
+  | "ios-safari"
+  | "ios-browser"
+  | "inapp"
+  | "mac-safari"
+  | "desktop-chrome"
+  | "desktop-edge"
+  | "desktop-firefox"
+  | "chrome"
+  | "firefox"
+  | "samsung"
+  | "other";
 
 export type InstallPromptEvent = Event & {
   prompt: () => Promise<void>;
@@ -45,9 +92,11 @@ export function isInApp(ua: string): boolean {
 }
 
 export function platformOf(ua: string, platform = "", maxTouchPoints = 0): Platform {
-  const apple = /iPad|iPhone|iPod/.test(ua) || (platform === "MacIntel" && maxTouchPoints > 1);
-  if (apple) return /CriOS|FxiOS|EdgiOS/.test(ua) ? "ios-browser" : "ios-safari";
+  const appleMobile = /iPad|iPhone|iPod/.test(ua) || (platform === "MacIntel" && maxTouchPoints > 1);
+  if (appleMobile) return /CriOS|FxiOS|EdgiOS/.test(ua) ? "ios-browser" : "ios-safari";
   if (/Android/i.test(ua)) return "android";
+  if (/Macintosh|Mac OS X/i.test(ua) || platform === "MacIntel") return "desktop-mac";
+  if (/Windows|Win32|Win64/i.test(ua)) return "desktop-windows";
   return "other";
 }
 
@@ -64,6 +113,17 @@ export function guideKind(ua: string, platform = "", maxTouchPoints = 0): GuideK
   const where = platformOf(ua, platform, maxTouchPoints);
   if (where === "ios-safari") return "ios-safari";
   if (where === "ios-browser") return "ios-browser";
+
+  if (where === "desktop-mac" && !/Chrome|CriOS|Firefox|FxiOS|Edg/i.test(ua) && /Safari/i.test(ua)) {
+    return "mac-safari";
+  }
+
+  if (where === "desktop-mac" || where === "desktop-windows") {
+    if (/Edg\//i.test(ua)) return "desktop-edge";
+    if (/Firefox/i.test(ua)) return "desktop-firefox";
+    if (/Chrome|Chromium|Brave|OPR|Opera/i.test(ua)) return "desktop-chrome";
+  }
+
   if (/SamsungBrowser/i.test(ua)) return "samsung";
   if (/Firefox|FxiOS/i.test(ua)) return "firefox";
   if (/Chrome|CriOS|EdgA|EdgiOS|OPR|Opera/i.test(ua)) return "chrome";
@@ -72,13 +132,20 @@ export function guideKind(ua: string, platform = "", maxTouchPoints = 0): GuideK
 
 export function isStandalone(matches: (query: string) => boolean, standalone: boolean | undefined): boolean {
   if (standalone === true) return true;
-  return ["standalone", "fullscreen", "minimal-ui", "window-controls-overlay"].some((mode) => matches(`(display-mode: ${mode})`));
+  return matches("(display-mode: standalone)");
 }
 
 export function isInstalled(): boolean {
   if (typeof window === "undefined") return false;
   const nav = navigator as Navigator & { standalone?: boolean };
   return isStandalone((query) => window.matchMedia(query).matches, nav.standalone);
+}
+
+// iOS browsers install from the Share sheet. Calling a captured
+// beforeinstallprompt there is unreliable (and Chrome can mistake the action
+// for a file save), so only non-iOS browsers may use the native prompt.
+export function canUseNativeInstallPrompt(platform: Platform, inApp: boolean): boolean {
+  return !inApp && platform !== "ios-safari" && platform !== "ios-browser";
 }
 
 type Store = Pick<Storage, "getItem" | "setItem">;
@@ -116,7 +183,8 @@ export function whatsappShareUrl(text = SHARE_TEXT, url = SHARE_URL): string {
 
 // The browser can fire beforeinstallprompt before this module loads. layout.tsx
 // listens first and leaves the event on window.__bip. This listener covers the
-// rest, and registers the worker as soon as the bundle runs.
+// rest. Service-worker registration lives in layout.tsx so development cannot
+// accidentally re-register it after the cleanup script runs.
 export function bindInstallCapture(): void {
   if (typeof window === "undefined" || window.__bipBound) return;
   window.__bipBound = true;
@@ -124,9 +192,6 @@ export function bindInstallCapture(): void {
     event.preventDefault();
     window.__bip = event as InstallPromptEvent;
   });
-  if ("serviceWorker" in navigator) {
-    navigator.serviceWorker.register("/sw.js").catch(() => undefined);
-  }
 }
 
 bindInstallCapture();

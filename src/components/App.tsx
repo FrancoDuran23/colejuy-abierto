@@ -25,6 +25,8 @@ import Planner, { type End, type Point } from "./Planner";
 import { plateLabel, Plate } from "./Plate";
 import Trip, { type Detail } from "./Trip";
 import Feedback from "./Feedback";
+import ThemeToggle from "./ThemeToggle";
+import { useTheme } from "./ThemeProvider";
 
 const BusMap = dynamic(() => import("./BusMap"), { ssr: false, loading: () => <Loading className="map-wait">Cargando mapa…</Loading> });
 
@@ -66,6 +68,7 @@ function ago(ms: number) {
 }
 
 export default function App() {
+  const { resolvedTheme } = useTheme();
   const [lineId, setLineId] = useState<string | null>(null);
   const [stopId, setStopId] = useState<string | null>(null);
   const [direction, setDirection] = useState("ida");
@@ -640,6 +643,7 @@ export default function App() {
 
       <div className="stage">
         <BusMap
+          theme={resolvedTheme}
           buses={mapBuses}
           paths={view === "trip" ? tripShapes.paths : paths}
           activeDirection={twoWay ? direction : null}
@@ -698,7 +702,6 @@ export default function App() {
           <span className="grip-bar" />
           {collapsed && !summary && !trip && !planning && <span className="grip-text">Mostrar opciones</span>}
         </button>
-        <Install />
         {summary ? (
           <>
             <header className="line-head">
@@ -907,7 +910,11 @@ export default function App() {
           onClose={() => setPicking(false)}
         />
       )}
-      <Feedback lineId={lineId} stopId={stopId} />
+      <div className="top-actions">
+        <Install />
+        <ThemeToggle />
+        <Feedback lineId={lineId} stopId={stopId} />
+      </div>
     </div>
   );
 }

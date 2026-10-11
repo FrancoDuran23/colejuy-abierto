@@ -22,7 +22,9 @@ Una sola vista: el mapa y, debajo, un panel. La usa alguien parado en una parada
 
 ## 2. La marca
 
-**El isologo**: una "c" dibujada como un recorrido, con el colectivo como punto naranja (`#ef7d4f`) en la punta, sobre tinta, y al lado el nombre "colejuy" en Barlow 700 minúscula. Vive en `src/components/Logo.tsx` y `src/app/icon.svg`; los PNG de `public/` se generan de ahí. Aparece en el panel de inicio y como ícono de la app. Ese naranja es solo del isologo.
+**El isologo**: una llama de lana blanca, con visor tornasolado, manejando un colectivo azul de frente. La escena usa un acabado 3D inspirado en voxel art, un halo magenta-violeta sobre fondo tinta y, en la interfaz, se acompaña con el nombre "colejuy" en Barlow 700 minúscula. El original vive en `public/colejuy-llama-bus.png`; `src/components/Logo.tsx` lo muestra dentro de la app y las variantes PNG de `public/` lo adaptan a cada tamaño instalable.
+
+**Tema**: por defecto sigue la preferencia clara u oscura del sistema. El control de luna/sol permite elegir una variante y conserva esa elección en el dispositivo. El tema oscuro mantiene la jerarquía cálida del claro con fondo tinta, superficies apenas elevadas y el mapa Dark de OpenFreeMap.
 
 **La chapa**: el número de la línea sobre el color de la línea, como el cartel del frente del colectivo. Es el único elemento con color fuerte. Aparece en el panel, en el buscador de líneas y como marcador en el mapa. No se usa para nada que no sea una línea.
 
@@ -116,7 +118,7 @@ Cada corrección de quien dirige se escribe aquí como principio con su razón.
 ## 13. Trampas del proyecto
 
 - **El mapa con alto 0.** La hoja de estilos de MapLibre pone `position: relative` en el contenedor y carga después de la nuestra. El selector tiene que ser `.stage .map`, no `.map`.
-- **El worker de MapLibre.** Desde la versión 6 es un archivo aparte que el empaquetador no lleva. Se copia a `public/` con `npm run worker` (corre solo antes de `dev` y `build`) y se declara con `setWorkerUrl`.
+- **El worker de MapLibre.** Desde la versión 6 es un archivo aparte que el empaquetador no lleva. Se copia a `public/` con `pnpm worker` (corre solo antes de `dev` y `build`) y se declara con `setWorkerUrl`.
 - **Coordenadas.** Santa Ana manda `[lat, lng]`; MapLibre y GeoJSON usan `[lng, lat]`. Se invierte una sola vez, en `src/lib/santa-ana.ts`.
 - **Qué trazado es la ida.** `paths[0]` no siempre es la ida: en 13 de las 38 líneas de dos sentidos las paradas "ida" están sobre `paths[1]`. El sentido de cada trazado se asigna según qué paradas caen sobre él (`labelPaths` en `src/lib/eta.ts`). Con el sentido al revés, el tiempo de llegada sale calculado con los coches que van para el otro lado.
 - **El sentido al pedir el aviso por chat.** El orden de `paths` tampoco dice hacia dónde va el colectivo. Se agrupan las paradas por su `direction` y se toma la más cercana de cada sentido. Si la diferencia es de 150 m o menos, se pregunta ("hacia X"); si solo uno de esos sentidos tiene un coche en camino, se usa ese y se dice por qué.
@@ -141,7 +143,7 @@ Cada corrección de quien dirige se escribe aquí como principio con su razón.
 - **El teclado del buscador.** Enfocar el campo al abrir levanta el teclado en el celular y tapa las líneas. El campo se enfoca solo con puntero fino (teclado y mouse); en pantalla táctil espera a que lo toquen.
 - **El foco del buscador.** `showModal()` pone el foco en el primer control, que es el botón de cerrar, y `autoFocus` de React corre antes. El campo se enfoca a mano después de abrir; si no, escribir no filtra.
 - **`servicio-humahuaca`** tiene 4 tramos y ninguna parada; `49bis` llega sin nombre.
-- **El GeoServer municipal** es HTTP sobre una IP: el navegador no puede leerlo desde un sitio HTTPS. Se copia con `npm run sync:muni`.
+- **El GeoServer municipal** es HTTP sobre una IP: el navegador no puede leerlo desde un sitio HTTPS. Se copia con `pnpm sync:muni`.
 - **Quitar "Parada " del nombre** deja filas que dicen solo "4" o "3 ida". No se recortan los nombres.
 - **Auditar con `tail`** corta los resultados de celular. El informe completo está en `audit/report.json`.
 
@@ -161,4 +163,4 @@ Un agente no decide estas:
 - ¿Se abrió cada captura de `audit/`, en celular y en escritorio?
 - ¿Las chapas siguen siendo lo único con color fuerte?
 - ¿Se entiende cuánto falta sin leer nada más que la fila de la parada?
-- ¿`npm test` y `npm run build` pasan?
+- ¿`pnpm test` y `pnpm build` pasan?

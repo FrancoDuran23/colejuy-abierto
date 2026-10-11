@@ -14,6 +14,7 @@ Este repositorio es la copia pública del proyecto: el código, la documentació
 - **Cómo llegar.** De un punto a otro por dirección o tocando el mapa: viajes directos o con un cambio de colectivo, con dónde subir, dónde cambiar, dónde bajar y cuánto se camina.
 - **Avisos por Telegram.** Desde la línea, desde una parada o escribiéndole al bot. El aviso dice a qué distancia está el coche y un rango de minutos.
 - **Tus líneas.** Se guardan con una estrella en el propio celular, sin registro.
+- **Instalable y adaptable.** Funciona como PWA en el celular, usa la llama manejando el colectivo como ícono y ofrece tema claro u oscuro, siguiendo al sistema por defecto.
 - **Para buscadores y asistentes.** Una página por línea, un índice, preguntas frecuentes y `llms.txt`.
 
 El detalle, función por función, está en [docs/scope.md](docs/scope.md).
@@ -64,20 +65,44 @@ El Urbano y la línea 26 no tienen posición en vivo. El bot lo dice y no arma u
 
 ## Correrlo
 
+### Requisitos
+
+- Node.js 22 o superior.
+- pnpm 12 o superior. El proyecto fija la versión exacta en `package.json` y puede activarse con Corepack.
+
 ```bash
-npm install
-npm run dev        # http://localhost:3000
-npm test           # pruebas de distancias, tiempos, combinaciones, avisos y colores
-npm run build
+corepack enable
+corepack install
+pnpm install
 ```
 
-`npm run sync:muni` vuelve a copiar los recorridos municipales de las líneas sin seguimiento a `src/data/muni-lines.json`.
+Copiar las variables de ejemplo solo si se van a configurar integraciones:
+
+```bash
+cp .env.example .env.local
+```
+
+El sitio funciona sin variables privadas: muestra líneas, recorridos y paradas. Para ver coches ficticios durante el desarrollo se puede agregar `FLEET_MOCK=1` a `.env.local`.
+
+### Comandos
+
+```bash
+pnpm dev            # http://localhost:3000
+pnpm test           # distancias, tiempos, combinaciones, avisos y colores
+pnpm lint
+pnpm build          # build de producción
+pnpm start          # sirve el build de producción
+```
+
+`pnpm sync:muni` vuelve a copiar los recorridos municipales de las líneas sin seguimiento a `src/data/muni-lines.json`.
+
+`pnpm-lock.yaml` es la fuente de verdad de dependencias y debe versionarse. En CI y despliegues reproducibles se recomienda `pnpm install --frozen-lockfile`.
 
 ## Subirlo a Vercel
 
 Sin ninguna variable el sitio muestra las líneas, los recorridos y las paradas. Las de `.env.example` hacen falta para las posiciones en vivo, para los avisos por Telegram y, si se quiere ver el detalle de las visitas, para Google Analytics. Ese archivo trae solo los nombres y para qué sirve cada una; los valores los pone cada quien en su despliegue y nunca van al repositorio.
 
-1. Importar el repositorio en Vercel (o `npx vercel` desde esta carpeta). La región es São Paulo (`vercel.json`).
+1. Importar el repositorio en Vercel —detecta pnpm mediante `pnpm-lock.yaml` y `packageManager`— o ejecutar `pnpm dlx vercel` desde esta carpeta. La región es São Paulo (`vercel.json`).
 2. Para las posiciones en vivo hay que completar la fuente de datos: este repositorio no incluye la conexión con Santa Ana. Ver [CONTRIBUTING.md](CONTRIBUTING.md) (`FLEET_MOCK=1` muestra coches ficticios).
 3. Para los avisos por Telegram:
    - Crear el bot con [@BotFather](https://t.me/BotFather) y copiar el token y el nombre de usuario.

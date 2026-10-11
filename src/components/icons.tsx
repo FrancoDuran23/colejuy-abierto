@@ -120,3 +120,22 @@ export const XIcon = () => (
     <path d="M18.901 1.153h3.68l-8.04 9.19L24 22.846h-7.406l-5.8-7.584-6.638 7.584H.474l8.6-9.83L0 1.154h7.594l5.243 6.932ZM17.61 20.644h2.039L6.486 3.24H4.298Z" />
   </svg>
 );
+
+export const DownloadIcon = () => (
+  <svg {...base}>
+    <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3" />
+  </svg>
+);
+
+export const MoonIcon = () => (
+  <svg {...base}>
+    <path d="M20.5 14.3A8.5 8.5 0 019.7 3.5 8.5 8.5 0 1020.5 14.3z" />
+  </svg>
+);
+
+export const SunIcon = () => (
+  <svg {...base}>
+    <circle cx="12" cy="12" r="4" />
+    <path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4" />
+  </svg>
+);

@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  canUseNativeInstallPrompt,
   guideKind,
   hiddenForNow,
   HIDE_MS,
@@ -37,6 +38,14 @@ const ANDROID_TELEGRAM =
   "Mozilla/5.0 (Linux; Android 14; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/126.0.6478.122 Mobile Safari/537.36 Telegram-Android/11.0";
 const IPHONE_INSTAGRAM =
   "Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148 Instagram 340.0.0.0.0";
+const MAC_SAFARI =
+  "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.5 Safari/605.1.15";
+const WINDOWS_CHROME =
+  "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36";
+const WINDOWS_EDGE =
+  "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36 Edg/126.0.0.0";
+const WINDOWS_FIREFOX =
+  "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:127.0) Gecko/20100101 Firefox/127.0";
 
 describe("install platform", () => {
   it("treats iPhone and iPad Safari as the share-icon steps", () => {
@@ -55,6 +64,29 @@ describe("install platform", () => {
     expect(iosBrowserName(IPHONE_EDGE)).toBe("Edge");
     expect(INSTALL_COPY.iosBrowser[0]).toContain("Compartir");
     expect(INSTALL_COPY.iosBrowser[1]).toContain("Agregar a inicio");
+    expect(canUseNativeInstallPrompt("ios-browser", false)).toBe(false);
+    expect(canUseNativeInstallPrompt("ios-safari", false)).toBe(false);
+  });
+
+  it("detects macOS desktop Safari with Add to Dock steps", () => {
+    expect(platformOf(MAC_SAFARI)).toBe("desktop-mac");
+    expect(guideKind(MAC_SAFARI)).toBe("mac-safari");
+    expect(INSTALL_COPY.macSafari[1]).toContain("Agregar al Dock");
+  });
+
+  it("detects Windows Edge and Chrome with omnibox install steps", () => {
+    expect(platformOf(WINDOWS_EDGE)).toBe("desktop-windows");
+    expect(guideKind(WINDOWS_EDGE)).toBe("desktop-edge");
+    expect(INSTALL_COPY.desktopEdge[0]).toContain("barra de direcciones");
+
+    expect(platformOf(WINDOWS_CHROME)).toBe("desktop-windows");
+    expect(guideKind(WINDOWS_CHROME)).toBe("desktop-chrome");
+    expect(INSTALL_COPY.desktopChrome[0]).toContain("barra de direcciones");
+  });
+
+  it("gives desktop Firefox an informative explanation", () => {
+    expect(guideKind(WINDOWS_FIREFOX)).toBe("desktop-firefox");
+    expect(INSTALL_COPY.desktopFirefox).toContain("Google Chrome, Microsoft Edge o Safari");
   });
 
   it("keeps a button path for Android even when the native prompt never comes", () => {
@@ -62,7 +94,8 @@ describe("install platform", () => {
     expect(guideKind(ANDROID_CHROME)).toBe("chrome");
     expect(guideKind(ANDROID_FIREFOX)).toBe("firefox");
     expect(guideKind(ANDROID_SAMSUNG)).toBe("samsung");
-    expect(INSTALL_COPY.chrome).toBe("Menú ⋮ > Instalar app / Agregar a pantalla principal.");
+    expect(INSTALL_COPY.chrome[0]).toContain("barra de direcciones");
+    expect(canUseNativeInstallPrompt("android", false)).toBe(true);
   });
 
   it("sends in-app browsers to the open-in-Chrome steps", () => {
@@ -70,8 +103,9 @@ describe("install platform", () => {
       expect(isInApp(ua)).toBe(true);
       expect(guideKind(ua)).toBe("inapp");
     }
-    expect(INSTALL_COPY.inapp).toBe("Abrilo en Chrome/Safari: tocá ⋮ o … y elegí Abrir en el navegador.");
+    expect(INSTALL_COPY.inapp).toBe("Abrilo en Chrome o Safari: tocá ⋮ o … y elegí Abrir en el navegador.");
     expect(isInApp(ANDROID_CHROME)).toBe(false);
+    expect(canUseNativeInstallPrompt("android", true)).toBe(false);
   });
 
   it("leaves a desktop browser without a phone guide", () => {

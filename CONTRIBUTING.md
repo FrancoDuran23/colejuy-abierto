@@ -37,14 +37,14 @@ servidores de Santa Ana**: ahí falta la pieza que lee dónde está cada colecti
 ## Reglas
 
 - Nada de secretos en el código ni en commits: claves, tokens, sesiones, IMEIs. Usá variables de entorno y documentá solo su nombre en `.env.example`.
-- Con el provider vacío o mock, `npm run build` y `npm test` tienen que pasar.
+- Con el provider vacío o mock, `pnpm build` y `pnpm test` tienen que pasar.
 - Los pull requests van a `main`; escribí qué fuente conectaste y cómo la probaste.
 
 ## Desarrollo
 
 ```
-npm install
-FLEET_MOCK=1 npm run dev
-npm test
-npm run lint
+pnpm install
+FLEET_MOCK=1 pnpm dev
+pnpm test
+pnpm lint
 ```
