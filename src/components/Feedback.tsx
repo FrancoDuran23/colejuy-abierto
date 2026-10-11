@@ -169,7 +169,6 @@ export default function Feedback({ lineId, stopId }: FeedbackProps) {
             ) : (
               <form onSubmit={submit}>
                 <input className="feedback-honeypot" name="website" tabIndex={-1} autoComplete="off" aria-hidden="true" />
-                {turnstileSiteKey && <div className="feedback-turnstile" ref={turnstileContainer} aria-label="Verificación de seguridad" />}
                 <fieldset className="feedback-topics">
                   <legend>¿Qué querés contarnos?</legend>
                   {topics.map((item) => (
@@ -182,6 +181,7 @@ export default function Feedback({ lineId, stopId }: FeedbackProps) {
                   <span>Tu mensaje <b>*</b></span>
                   <textarea value={message} onChange={(event) => setMessage(event.target.value)} placeholder="Por ejemplo: la línea 18 no aparece en el mapa…" maxLength={2000} rows={5} autoFocus required />
                 </label>
+                {turnstileSiteKey && <div className="feedback-turnstile" ref={turnstileContainer} aria-label="Verificación de seguridad" />}
                 {error && (
                   <div role="alert">
                     <p className="feedback-error">{error}</p>
