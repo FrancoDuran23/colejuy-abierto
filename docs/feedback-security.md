@@ -83,6 +83,22 @@ TURNSTILE_HOSTNAMES=localhost,127.0.0.1
 
 La site key puede estar en el navegador. El secret nunca debe estar en variables `NEXT_PUBLIC_*` ni en el repositorio.
 
+### `TURNSTILE_HOSTNAMES`
+
+Esta variable define los hostnames autorizados para generar el token de Turnstile. Cloudflare devuelve el hostname junto con el resultado de `siteverify` y el BFF exige que coincida con uno de los valores configurados. Esto evita reutilizar un token válido generado para otro sitio.
+
+Los valores se separan por coma y no llevan protocolo, ruta ni puerto:
+
+```env
+# Desarrollo
+TURNSTILE_HOSTNAMES=localhost,127.0.0.1
+
+# Producción con Vercel y dominio propio
+TURNSTILE_HOSTNAMES=colejuy.vercel.app,colejuy.com.ar
+```
+
+Los mismos hostnames deben estar autorizados en la configuración del widget de Cloudflare. En producción no se deben dejar `localhost` ni `127.0.0.1`.
+
 ## Limitaciones y defensa adicional
 
 CORS y `Origin` no pueden impedir por sí solos un `curl`: un cliente no navegador puede falsificar headers. Por eso la defensa depende de la combinación de Turnstile, rate limit, honeypot y validación server-side.
