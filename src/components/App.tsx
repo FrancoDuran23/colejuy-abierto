@@ -24,6 +24,7 @@ import Loading from "./Loading";
 import Planner, { type End, type Point } from "./Planner";
 import { plateLabel, Plate } from "./Plate";
 import Trip, { type Detail } from "./Trip";
+import Feedback from "./Feedback";
 
 const BusMap = dynamic(() => import("./BusMap"), { ssr: false, loading: () => <Loading className="map-wait">Cargando mapa…</Loading> });
 
@@ -906,6 +907,7 @@ export default function App() {
           onClose={() => setPicking(false)}
         />
       )}
+      <Feedback lineId={lineId} stopId={stopId} />
     </div>
   );
 }

@@ -386,6 +386,215 @@ h3 {
   visibility: visible;
 }
 
+/* Feedback */
+
+.feedback-trigger {
+  position: fixed;
+  right: var(--s4);
+  top: calc(var(--s4) + env(safe-area-inset-top));
+  z-index: 4;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s2);
+  min-height: 44px;
+  padding: 0 var(--s3);
+  border: 1px solid rgb(255 255 255 / 0.35);
+  border-radius: 999px;
+  background: var(--ink);
+  color: #fff;
+  box-shadow: 0 4px 16px rgb(28 27 24 / 0.22);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.feedback-trigger span:first-child {
+  color: #f4c34c;
+  font-size: 18px;
+}
+
+.feedback-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 10;
+  display: grid;
+  place-items: center;
+  padding: var(--s4);
+  background: rgb(28 27 24 / 0.46);
+}
+
+.feedback-card {
+  width: min(100%, 480px);
+  max-height: min(700px, calc(100dvh - 32px));
+  overflow-y: auto;
+  padding: var(--s5);
+  border: 1px solid var(--rule);
+  border-radius: var(--r-panel);
+  background: var(--surface);
+  box-shadow: 0 20px 60px rgb(28 27 24 / 0.25);
+}
+
+.feedback-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--s3);
+  margin-bottom: var(--s5);
+}
+
+.feedback-kicker {
+  margin-bottom: var(--s1);
+  color: var(--ink-soft);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+}
+
+.feedback-head h2 {
+  font-size: 26px;
+  line-height: 1.1;
+}
+
+.feedback-topics {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s2);
+  margin: 0 0 var(--s5);
+  padding: 0;
+  border: 0;
+}
+
+.feedback-topics legend,
+.feedback-field > span {
+  width: 100%;
+  margin-bottom: var(--s2);
+  color: var(--ink-soft);
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.feedback-topics button {
+  min-height: 42px;
+  padding: 0 var(--s3);
+  border: 1px solid var(--rule);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--ink-soft);
+}
+
+.feedback-topics button.selected {
+  border-color: var(--ink);
+  background: var(--ink);
+  color: #fff;
+}
+
+.feedback-field {
+  display: block;
+}
+
+.feedback-field b {
+  color: var(--warn);
+}
+
+.feedback-field textarea {
+  display: block;
+  width: 100%;
+  min-height: 132px;
+  resize: vertical;
+  padding: var(--s3);
+  border: 1px solid var(--rule);
+  border-radius: var(--r-control);
+  background: var(--surface);
+  color: var(--ink);
+  font: inherit;
+  line-height: 1.4;
+}
+
+.feedback-field textarea:focus {
+  outline: 2px solid var(--focus);
+  outline-offset: 1px;
+}
+
+.feedback-honeypot {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.feedback-turnstile {
+  min-height: 65px;
+  margin-top: var(--s3);
+}
+
+.feedback-retry {
+  margin-top: var(--s2);
+  color: var(--ink);
+  font-size: 14px;
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.feedback-submit {
+  width: 100%;
+  margin-top: var(--s4);
+}
+
+.feedback-error {
+  margin-top: var(--s2);
+  color: var(--warn);
+  font-size: 14px;
+}
+
+.feedback-success {
+  display: grid;
+  justify-items: center;
+  gap: var(--s3);
+  padding: var(--s3) 0 var(--s2);
+  text-align: center;
+}
+
+.feedback-success-mark {
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: var(--ink);
+  color: #fff;
+  font-size: 24px;
+}
+
+.feedback-success h3 {
+  font-size: 20px;
+}
+
+.feedback-success p {
+  color: var(--ink-soft);
+}
+
+@media (hover: hover) {
+  .feedback-trigger:hover {
+    background: #3a3832;
+  }
+}
+
+@media (max-width: 899px) {
+  .feedback-trigger {
+    right: var(--s3);
+    top: calc(var(--s3) + env(safe-area-inset-top));
+  }
+  .feedback-card {
+    align-self: end;
+    max-height: calc(100dvh - 24px);
+    padding: var(--s4);
+    border-radius: var(--r-panel) var(--r-panel) var(--r-control) var(--r-control);
+  }
+}
+
+
 /* The plate: a line's number on its color, like the sign on the front of the bus. */
 
 .plate {
