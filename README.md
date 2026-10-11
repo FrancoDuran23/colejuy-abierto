@@ -86,6 +86,7 @@ Sin ninguna variable el sitio muestra las líneas, los recorridos y las paradas.
    - Correr una vez `node scripts/telegram-setup.mjs` con esas variables, para que Telegram llame al sitio y queden registrados los comandos (`/avisame`, `/avisos`, `/casa`, `/cancelar`).
    - Programar una llamada por minuto a `https://<sitio>/api/telegram/tick?key=<TICK_SECRET>`. El plan gratuito de Vercel solo permite tareas una vez al día, así que hace falta un programador externo (por ejemplo cron-job.org) o el plan Pro.
 4. Para ver las visitas en Google Analytics 4, opcional: crear una propiedad web, copiar el id de medición (`G-…`) a `NEXT_PUBLIC_GA_ID` y volver a desplegar. Sin esa variable el script de Google no entra en la página.
+5. Feedback con Cloudflare Turnstile, opcional y apagado por defecto. Variables (sin valores en el repo): `NEXT_PUBLIC_TURNSTILE_SITE_KEY` (pública), `TURNSTILE_SECRET_KEY` (solo servidor), `TURNSTILE_HOSTNAMES` (dominios permitidos, separados por coma; en producción solo los productivos, sin `localhost`), más `FEEDBACK_CHAT_ID` o `FEEDBACK_WEBHOOK_URL` como destino y `KV_REST_API_URL` / `KV_REST_API_TOKEN` para el rate limit compartido. Sin las claves de Turnstile el captcha no se exige; ver [docs/feedback-security.md](docs/feedback-security.md).
 
 ## Privacidad
 
