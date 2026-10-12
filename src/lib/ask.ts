@@ -252,7 +252,7 @@ export function directionHeading(stops: Stop[], direction: string | null): strin
   return end.name.trim() || (direction ?? "ese sentido");
 }
 
-function nearestByDirection(stops: Stop[], at: GeoPoint): { stop: Stop; meters: number }[] {
+export function nearestByDirection(stops: Stop[], at: GeoPoint): { stop: Stop; meters: number }[] {
   const best = new Map<string, { stop: Stop; meters: number }>();
   for (const stop of stops) {
     const meters = distance([at.lng, at.lat], [stop.lng, stop.lat]);

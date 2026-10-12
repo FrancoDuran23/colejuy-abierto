@@ -30,6 +30,10 @@ colejuy es un proyecto independiente de Franco Durán, fundador de la comunidad 
 
 ${lines.map((l) => `- [${properName(l.name)}](${SITE}/linea/${encodeURIComponent(l.id)}): ${l.live ? "recorrido y paradas" : "solo recorrido"}${l.operator ? `, ${l.operator}` : ""}.`).join("\n")}
 
+## MCP
+
+Servidor MCP de solo lectura en ${SITE}/mcp: líneas, recorridos y paradas, posiciones en vivo, llegadas estimadas, búsqueda de direcciones y planificación de viajes.
+
 ## Preguntas frecuentes
 
 - ¿Cómo sé cuándo llega el colectivo en Jujuy? Se toca una parada en colejuy y se ve cuánto falta; hay posición en vivo solo para líneas de Santa Ana y el tiempo es una estimación.

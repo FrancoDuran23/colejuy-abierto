@@ -46,3 +46,6 @@ next-env.d.ts
 # copied from maplibre-gl before dev and build
 /public/maplibre-gl-worker.mjs
 !.env.example
+
+# Local Devin CLI config (skills, MCP servers)
+.devin/
