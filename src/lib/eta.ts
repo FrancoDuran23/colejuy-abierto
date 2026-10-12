@@ -66,6 +66,20 @@ function ridingPath(paths: Path[], bus: Bus): Path | null {
   return best?.path ?? null;
 }
 
+// The path a bus is running on. Where both directions share a street the offsets differ by a few
+// metres, so a moving bus with a heading only matches a path that goes its way, as in `arrivals`.
+// A stopped bus may report an old heading: it takes the closest path. Off every path: null.
+export function busPath(paths: Path[], bus: Bus): Path | null {
+  const point: LngLat = [bus.lng, bus.lat];
+  const near = paths
+    .map((path) => ({ path, at: locate(path.coordinates, point) }))
+    .filter((c): c is { path: Path; at: NonNullable<typeof c.at> } => c.at !== null && c.at.offset <= OFF_ROUTE_M)
+    .sort((a, b) => a.at.offset - b.at.offset);
+  const sure = bus.course !== null && bus.moving;
+  const heading = sure ? near.filter((c) => angleBetween(bus.course!, c.at.bearing) <= 100) : near;
+  return (heading[0] ?? near[0])?.path ?? null;
+}
+
 export type AlongRoute =
   | { kind: "coming"; meters: number; minutes: number }
   | { kind: "passed"; meters: number };
